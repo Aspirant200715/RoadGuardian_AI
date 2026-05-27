@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { DetectionOverlay } from '@/components/hazard/DetectionOverlay';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-import { UploadCloud, Mic, MapPin, CheckCircle, MicOff, ShieldAlert } from 'lucide-react';
+import { UploadCloud, Mic, MapPin, CheckCircle, MicOff, ShieldAlert, AlertTriangle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import { useReportStore } from '@/store/reportStore';
 
 export const Report = () => {
   const navigate = useNavigate();
@@ -19,10 +19,23 @@ export const Report = () => {
   const { coords, getLocation, loading: locLoading } = useGeolocation();
   const { isRecording, transcript, startRecording, stopRecording, setTranscript } = useVoiceRecorder();
 
+  const [manualLocation, setManualLocation] = useState({
+    state: '',
+    district: '',
+    locality: '',
+    pincode: ''
+  });
+
+  const { addReport } = useReportStore();
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImage(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -30,169 +43,292 @@ export const Report = () => {
   const handlePrev = () => setStep(s => Math.max(s - 1, 1));
 
   const handleSubmit = () => {
+    const locString = [manualLocation.locality, manualLocation.district, manualLocation.state].filter(Boolean).join(', ') || 
+                      (coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : 'Unknown Location');
+
+    addReport({
+      type: aiResult?.type || 'Unknown Hazard',
+      severity: aiResult?.severity || 5,
+      location: locString,
+      image: image || undefined,
+      transcript: transcript,
+      coords: coords
+    });
+
     toast.success('Hazard reported successfully! You earned 50 points.');
     navigate('/dashboard');
   };
 
+  const isLocationComplete = coords || (manualLocation.state && manualLocation.district && manualLocation.locality);
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Report a Hazard</h1>
-        
-        <div className="flex items-center justify-between mt-6 relative">
+    <div className="max-w-5xl mx-auto space-y-8 px-2">
+      <div className="mb-8 border-b-2 border-[#138808] pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-[#000080] dark:text-foreground">Official Hazard Report Form</h1>
+          <p className="text-muted-foreground font-bold text-sm uppercase tracking-wider mt-2">Document infrastructure discrepancies for municipal action.</p>
+        </div>
+        <div className="flex items-center text-xs font-mono bg-slate-50 dark:bg-muted border border-border px-4 py-2 text-muted-foreground shadow-sm">
+          <FileText className="w-4 h-4 mr-2" /> FORM: HM-09A (REV 2)
+        </div>
+      </div>
+
+      {/* Progress Tracker */}
+      <div className="bg-white dark:bg-card border border-border rounded-sm p-6 shadow-sm mb-8">
+        <div className="flex items-center justify-between relative">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="flex flex-col items-center w-1/4 relative z-10">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${step >= i ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-secondary text-muted-foreground'}`}>
+              <div className={`w-10 h-10 flex items-center justify-center font-bold text-sm border ${step >= i ? 'bg-[#000080] dark:bg-primary text-white border-[#000080] dark:border-primary shadow-sm' : 'bg-slate-100 dark:bg-muted text-muted-foreground border-border'}`}>
                 {step > i ? <CheckCircle className="w-5 h-5" /> : i}
               </div>
-              <div className={`text-xs mt-2 hidden sm:block ${step >= i ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {i === 1 ? 'Upload' : i === 2 ? 'AI Scan' : i === 3 ? 'Details' : 'Submit'}
+              <div className={`text-xs mt-3 uppercase font-bold tracking-widest hidden sm:block ${step >= i ? 'text-[#000080] dark:text-primary' : 'text-muted-foreground'}`}>
+                {i === 1 ? 'Media Upload' : i === 2 ? 'AI Analysis' : i === 3 ? 'Location Data' : 'Review & Submit'}
               </div>
             </div>
           ))}
-          <div className="absolute top-4 left-0 w-full h-[2px] bg-secondary -z-0">
-             <div className="h-full bg-primary transition-all duration-300" style={{ width: `${((step - 1) / 3) * 100}%` }} />
+          <div className="absolute top-5 left-0 w-full h-[2px] bg-border -z-0">
+             <div className="h-full bg-[#000080] dark:bg-primary transition-all duration-300" style={{ width: `${((step - 1) / 3) * 100}%` }} />
           </div>
         </div>
       </div>
 
-      <Card className="min-h-[400px]">
-        <CardContent className="p-6">
+      <Card className="min-h-[500px] border-t-4 border-t-[#000080] rounded-sm shadow-sm bg-white dark:bg-card">
+        <CardContent className="p-0 flex flex-col h-full justify-between">
           {step === 1 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-              <div className="border-2 border-dashed border-primary/50 rounded-xl p-12 flex flex-col items-center justify-center bg-secondary/10 hover:bg-secondary/20 transition-colors cursor-pointer relative overflow-hidden group">
-                <input type="file" accept="image/*" capture="environment" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" onChange={handleImageUpload} />
-                {image ? (
-                  <img src={image} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-10 transition-opacity" />
-                ) : null}
-                <UploadCloud className="w-16 h-16 text-primary mb-4 z-10" />
-                <h3 className="font-bold text-lg z-10">Tap to Capture or Upload</h3>
-                <p className="text-sm text-muted-foreground mt-2 text-center z-10">Take a photo of the hazard. Make sure it's clear.</p>
-                {image && <p className="text-green-500 font-bold mt-4 z-10 flex items-center gap-2"><CheckCircle className="w-4 h-4"/> Image Ready</p>}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
+              <div className="bg-slate-50 dark:bg-muted/50 border-b border-border py-4 px-8 flex justify-between items-center">
+                <h3 className="font-bold text-sm uppercase text-[#000080] dark:text-primary tracking-wider">Step 1: Visual Documentation</h3>
+                <span className="text-sm font-mono text-muted-foreground font-bold">1/4</span>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Voice Description (Optional)</label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <Button 
-                    type="button" 
-                    variant={isRecording ? "destructive" : "secondary"} 
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className="w-full sm:w-auto"
-                  >
-                    {isRecording ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-                    {isRecording ? 'Stop Recording' : 'Hold to Speak'}
-                  </Button>
-                  {isRecording && (
-                    <div className="flex gap-1 h-8 items-center px-4 bg-destructive/10 rounded-full w-full sm:w-auto justify-center">
-                      {[1,2,3,4,5,6,7,8].map(bar => (
-                        <motion.div key={bar} animate={{ height: ['4px', '24px', '4px'] }} transition={{ repeat: Infinity, duration: Math.random() * 0.5 + 0.3 }} className="w-1 bg-destructive rounded-full" />
-                      ))}
-                    </div>
-                  )}
+              
+              <div className="p-8 space-y-8 flex-1">
+                <div className="border-2 border-dashed border-border bg-slate-50 dark:bg-background p-12 flex flex-col items-center justify-center hover:bg-slate-100 dark:hover:bg-muted/50 transition-colors cursor-pointer relative overflow-hidden group min-h-[250px]">
+                  <input type="file" accept="image/*" capture="environment" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" onChange={handleImageUpload} />
+                  {image ? (
+                    <img src={image} className="absolute inset-0 w-full h-full object-cover opacity-20 grayscale" />
+                  ) : null}
+                  <UploadCloud className="w-12 h-12 text-[#000080] dark:text-primary mb-4 z-10" />
+                  <h3 className="font-black text-base uppercase tracking-wider z-10 text-foreground">Select File or Capture Image</h3>
+                  <p className="text-sm font-medium text-muted-foreground mt-2 text-center z-10">Ensure the hazard is clearly visible. Max size 5MB.</p>
+                  {image && <div className="absolute top-4 right-4 bg-[#138808] text-white px-4 py-2 text-xs font-bold uppercase tracking-wider z-20 flex items-center shadow-sm"><CheckCircle className="w-4 h-4 mr-2"/> File Attached</div>}
                 </div>
-                <Input 
-                  placeholder="Or type a description..." 
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                  className="mt-2"
-                />
+
+                <div className="space-y-4 pt-8 border-t border-border">
+                  <label className="text-sm font-bold uppercase tracking-wider text-foreground">Audio Transcription (Optional)</label>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <Button 
+                      type="button" 
+                      variant={isRecording ? "destructive" : "outline"} 
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`w-full sm:w-auto rounded-sm h-12 px-6 font-bold uppercase text-xs tracking-wider ${!isRecording && 'border-border text-foreground hover:bg-slate-50'}`}
+                    >
+                      {isRecording ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
+                      {isRecording ? 'Stop Recording' : 'Record Audio'}
+                    </Button>
+                    {isRecording && (
+                      <div className="flex gap-3 h-12 items-center px-6 bg-destructive text-white font-bold text-xs uppercase tracking-wider animate-pulse rounded-sm">
+                        <span className="w-2.5 h-2.5 rounded-full bg-white"></span> Recording in progress...
+                      </div>
+                    )}
+                  </div>
+                  <Input 
+                    placeholder="Manual description entry..." 
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    className="mt-4 rounded-sm border-border bg-slate-50 dark:bg-background focus-visible:ring-[#000080] h-12 text-sm font-medium"
+                  />
+                </div>
               </div>
 
-              <Button className="w-full h-12 text-lg mt-8" disabled={!image} onClick={handleNext}>Analyze with AI</Button>
-            </motion.div>
+              <div className="flex justify-end p-6 border-t border-border bg-slate-50 dark:bg-muted/50 mt-auto">
+                <Button className="h-12 px-10 rounded-sm font-bold uppercase text-xs tracking-wider bg-[#FF9933] hover:bg-[#e68a2e] text-white shadow-sm" disabled={!image} onClick={handleNext}>Proceed to AI Analysis</Button>
+              </div>
+            </div>
           )}
 
           {step === 2 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-              <DetectionOverlay imageUrl={image} onAnalysisComplete={setAiResult} />
-              
-              {aiResult && (
-                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg space-y-2">
-                  <h3 className="font-bold text-destructive flex items-center"><ShieldAlert className="mr-2 h-5 w-5" /> Critical Hazard Detected</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm mt-2">
-                    <div><span className="text-muted-foreground">Type:</span> <span className="font-bold capitalize block">{aiResult.type}</span></div>
-                    <div><span className="text-muted-foreground">Confidence:</span> <span className="font-bold block">{aiResult.confidence}%</span></div>
-                    <div className="col-span-2"><span className="text-muted-foreground">Severity Score:</span> <span className="font-bold text-destructive text-xl block">{aiResult.severity} / 10</span></div>
-                  </div>
-                </motion.div>
-              )}
-
-              <div className="flex gap-4 pt-4">
-                <Button variant="outline" onClick={handlePrev} className="w-1/3">Back</Button>
-                <Button onClick={handleNext} disabled={!aiResult} className="w-2/3">Confirm Detection</Button>
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
+              <div className="bg-slate-50 dark:bg-muted/50 border-b border-border py-4 px-8 flex justify-between items-center">
+                <h3 className="font-bold text-sm uppercase text-[#000080] dark:text-primary tracking-wider">Step 2: Automated Verification</h3>
+                <span className="text-sm font-mono text-muted-foreground font-bold">2/4</span>
               </div>
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-              <div className="p-8 border rounded-lg bg-card text-center space-y-6 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
-                  <MapPin className="w-12 h-12 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl">Where is the hazard?</h3>
-                  <p className="text-muted-foreground text-sm mt-2">We need the exact location to dispatch repair teams to the right place.</p>
-                </div>
+              
+              <div className="p-8 space-y-8 flex-1">
+                <DetectionOverlay imageUrl={image} onAnalysisComplete={setAiResult} />
                 
-                <Button onClick={getLocation} disabled={locLoading} size="lg" className="w-full sm:w-auto">
-                  {locLoading ? 'Fetching GPS Coordinates...' : 'Use Current GPS Location'}
-                </Button>
-
-                {coords && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-secondary/30 rounded-md w-full border border-secondary">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Location Acquired:</p>
-                    <p className="font-mono font-bold text-lg text-primary">{coords.lat.toFixed(5)}°, {coords.lng.toFixed(5)}°</p>
-                  </motion.div>
+                {aiResult && (
+                  <div className="border border-destructive bg-[#fef2f2] dark:bg-destructive/10 rounded-sm shadow-sm overflow-hidden mt-8">
+                    <div className="bg-destructive text-white py-3 px-5 flex items-center font-black text-xs uppercase tracking-wider">
+                      <ShieldAlert className="mr-2 h-5 w-5" /> Detection Results Log
+                    </div>
+                    <table className="w-full text-left text-sm font-mono">
+                      <tbody className="divide-y divide-destructive/20">
+                        <tr>
+                          <td className="py-3 px-5 font-bold text-destructive/80 w-1/3 uppercase tracking-wider">Classification</td>
+                          <td className="py-3 px-5 font-black uppercase text-destructive text-base">{aiResult.type}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-5 font-bold text-destructive/80 uppercase tracking-wider">Confidence</td>
+                          <td className="py-3 px-5 font-bold text-foreground text-base">{aiResult.confidence}%</td>
+                        </tr>
+                        <tr className="bg-destructive/5">
+                          <td className="py-4 px-5 font-bold text-destructive/80 uppercase tracking-wider">Severity Score</td>
+                          <td className="py-4 px-5 font-black text-destructive text-2xl">{aiResult.severity} / 10</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 
-              <div className="flex gap-4">
-                <Button variant="outline" onClick={handlePrev} className="w-1/3">Back</Button>
-                <Button onClick={handleNext} disabled={!coords} className="w-2/3">Review Submission</Button>
+              <div className="flex gap-4 p-6 border-t border-border bg-slate-50 dark:bg-muted/50 justify-between mt-auto">
+                <Button variant="outline" onClick={handlePrev} className="rounded-sm h-12 px-8 font-bold uppercase text-xs tracking-wider border-border bg-white dark:bg-card">Previous Step</Button>
+                <Button onClick={handleNext} disabled={!aiResult} className="rounded-sm h-12 px-10 font-bold uppercase text-xs tracking-wider bg-[#000080] text-white hover:bg-[#000066] shadow-sm">Confirm Analysis</Button>
               </div>
-            </motion.div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
+               <div className="bg-slate-50 dark:bg-muted/50 border-b border-border py-4 px-8 flex justify-between items-center">
+                <h3 className="font-bold text-sm uppercase text-[#000080] dark:text-primary tracking-wider">Step 3: Geographic Data</h3>
+                <span className="text-sm font-mono text-muted-foreground font-bold">3/4</span>
+              </div>
+              
+              <div className="p-8 space-y-8 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                {/* GPS Location Block */}
+                <div className="p-8 border border-border bg-slate-50 dark:bg-background text-center space-y-6 flex flex-col items-center justify-center shadow-sm">
+                  <div className="w-20 h-20 bg-white dark:bg-card border border-border flex items-center justify-center shadow-sm">
+                    <MapPin className="w-10 h-10 text-[#FF9933]" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg uppercase tracking-wider text-foreground">Acquire GPS Lock</h3>
+                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider mt-3 max-w-sm mx-auto">Precise coordinates assist rapid municipal response.</p>
+                  </div>
+                  
+                  <Button onClick={getLocation} disabled={locLoading} size="lg" className="w-full sm:w-auto h-12 px-10 rounded-sm font-bold uppercase text-xs tracking-wider shadow-sm bg-[#000080] text-white hover:bg-[#000066]">
+                    {locLoading ? 'Acquiring GPS Signal...' : 'Fetch GPS Data'}
+                  </Button>
+
+                  {coords && (
+                    <div className="w-full border-t border-border pt-6 mt-4">
+                      <table className="w-full text-left text-xs font-mono border border-[#138808]">
+                        <thead className="bg-[#138808] text-white">
+                          <tr><th colSpan={2} className="py-2.5 px-4 font-bold uppercase tracking-wider"><CheckCircle className="w-4 h-4 inline mr-2" /> Coordinates Locked</th></tr>
+                        </thead>
+                        <tbody className="bg-[#138808]/5 text-[#138808] dark:text-success divide-y divide-[#138808]/20">
+                          <tr>
+                            <td className="py-3 px-4 font-bold uppercase tracking-wider w-1/3">Latitude</td>
+                            <td className="py-3 px-4 font-black">{coords.lat.toFixed(6)}° N</td>
+                          </tr>
+                          <tr>
+                            <td className="py-3 px-4 font-bold uppercase tracking-wider">Longitude</td>
+                            <td className="py-3 px-4 font-black">{coords.lng.toFixed(6)}° E</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Manual Location Block */}
+                <div className="p-8 border border-border bg-white dark:bg-card space-y-6 shadow-sm flex flex-col">
+                  <div>
+                    <h3 className="font-black text-lg uppercase tracking-wider text-[#000080] dark:text-primary flex items-center">
+                      <FileText className="w-5 h-5 mr-2" /> Manual Locality Entry
+                    </h3>
+                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider mt-2">Required if GPS lock is inaccurate or unavailable.</p>
+                  </div>
+
+                  <div className="space-y-4 flex-1">
+                     <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">State / UT</label>
+                         <Input value={manualLocation.state} onChange={e => setManualLocation({...manualLocation, state: e.target.value})} placeholder="e.g. Maharashtra" className="rounded-sm bg-slate-50 dark:bg-background" />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">District / City</label>
+                         <Input value={manualLocation.district} onChange={e => setManualLocation({...manualLocation, district: e.target.value})} placeholder="e.g. Mumbai" className="rounded-sm bg-slate-50 dark:bg-background" />
+                       </div>
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Locality / Ward / Landmark</label>
+                       <Input value={manualLocation.locality} onChange={e => setManualLocation({...manualLocation, locality: e.target.value})} placeholder="e.g. Near Andheri Station, Ward K" className="rounded-sm bg-slate-50 dark:bg-background" />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pincode</label>
+                       <Input value={manualLocation.pincode} onChange={e => setManualLocation({...manualLocation, pincode: e.target.value})} placeholder="e.g. 400053" className="rounded-sm bg-slate-50 dark:bg-background w-1/2" />
+                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 p-6 border-t border-border bg-slate-50 dark:bg-muted/50 justify-between mt-auto">
+                <Button variant="outline" onClick={handlePrev} className="rounded-sm h-12 px-8 font-bold uppercase text-xs tracking-wider border-border bg-white dark:bg-card">Previous Step</Button>
+                <Button onClick={handleNext} disabled={!isLocationComplete} className="rounded-sm h-12 px-10 font-bold uppercase text-xs tracking-wider bg-[#000080] text-white hover:bg-[#000066] shadow-sm">Proceed to Review</Button>
+              </div>
+            </div>
           )}
 
           {step === 4 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-              <div className="space-y-6 border rounded-lg p-6 bg-card">
-                <div className="flex items-center gap-4 border-b pb-4">
-                  {image && <img src={image} className="w-20 h-20 rounded object-cover" />}
-                  <div>
-                    <h3 className="font-bold text-xl">Submission Summary</h3>
-                    <p className="text-sm text-muted-foreground">Review details before sending to authorities.</p>
-                  </div>
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
+               <div className="bg-slate-50 dark:bg-muted/50 border-b border-border py-4 px-8 flex justify-between items-center">
+                <h3 className="font-bold text-sm uppercase text-[#000080] dark:text-primary tracking-wider">Step 4: Final Verification</h3>
+                <span className="text-sm font-mono text-muted-foreground font-bold">4/4</span>
+              </div>
+              
+              <div className="p-8 space-y-8 flex-1">
+                <div className="bg-white dark:bg-card border border-border shadow-sm flex flex-col md:flex-row items-stretch">
+                   <div className="md:w-1/3 p-6 border-b md:border-b-0 md:border-r border-border bg-slate-50 dark:bg-muted/30 flex items-center justify-center">
+                      {image && <img src={image} className="w-full max-h-48 object-contain border border-border shadow-sm bg-background" />}
+                   </div>
+                   <div className="md:w-2/3 p-0">
+                     <table className="w-full text-left text-sm h-full">
+                        <tbody className="divide-y divide-border h-full">
+                          <tr>
+                            <td className="py-4 px-6 font-bold uppercase text-muted-foreground w-1/3 bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Detected Hazard</td>
+                            <td className="py-4 px-6 font-black text-foreground uppercase">{aiResult?.type}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-4 px-6 font-bold uppercase text-muted-foreground bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Severity Rating</td>
+                            <td className="py-4 px-6 font-black text-destructive text-lg">{aiResult?.severity} / 10</td>
+                          </tr>
+                          <tr>
+                            <td className="py-4 px-6 font-bold uppercase text-muted-foreground bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Coordinates</td>
+                            <td className="py-4 px-6 font-mono font-bold text-foreground">
+                              {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="py-4 px-6 font-bold uppercase text-muted-foreground bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Locality</td>
+                            <td className="py-4 px-6 font-bold text-foreground">
+                              {[manualLocation.locality, manualLocation.district, manualLocation.state].filter(Boolean).join(', ') || 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="py-4 px-6 font-bold uppercase text-muted-foreground bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Statement</td>
+                            <td className="py-4 px-6 font-medium italic text-foreground">{transcript || 'No statement provided.'}</td>
+                          </tr>
+                        </tbody>
+                     </table>
+                   </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Hazard Type</p>
-                    <p className="font-bold capitalize text-lg">{aiResult?.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Severity</p>
-                    <p className="font-bold text-destructive text-lg">{aiResult?.severity} / 10</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Coordinates</p>
-                    <p className="font-mono">{coords?.lat.toFixed(5)}, {coords?.lng.toFixed(5)}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Description</p>
-                    <p className="bg-secondary/20 p-3 rounded-md mt-1">{transcript || 'No verbal description provided'}</p>
-                  </div>
+
+                <div className="bg-[#fdf2e9] dark:bg-yellow-950/20 p-5 border border-[#FF9933]/30 flex items-start gap-4 rounded-sm">
+                   <AlertTriangle className="w-6 h-6 text-[#FF9933] shrink-0 mt-0.5" />
+                   <p className="text-xs text-[#b45309] dark:text-yellow-500 font-bold uppercase tracking-wider leading-relaxed">
+                     I hereby declare that the information provided is accurate and true to the best of my knowledge. I understand that submitting false reports may lead to suspension of portal access.
+                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <Button variant="outline" onClick={handlePrev} className="w-1/3">Edit</Button>
-                <Button onClick={handleSubmit} className="w-2/3 bg-green-600 hover:bg-green-700 text-white h-12 text-lg">
-                  Submit Report
+              <div className="flex gap-4 p-6 border-t border-border bg-slate-50 dark:bg-muted/50 justify-between mt-auto">
+                <Button variant="outline" onClick={handlePrev} className="rounded-sm h-14 px-8 font-bold uppercase text-sm tracking-wider border-border bg-white dark:bg-card">Edit Details</Button>
+                <Button onClick={handleSubmit} className="w-full sm:w-auto bg-[#138808] hover:bg-green-700 text-white h-14 px-12 font-black uppercase text-sm tracking-widest shadow-md">
+                  Submit Official Report
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
         </CardContent>
       </Card>

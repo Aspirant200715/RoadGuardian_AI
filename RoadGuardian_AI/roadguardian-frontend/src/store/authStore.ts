@@ -9,6 +9,7 @@ interface AuthState {
   isInitialized: boolean;
   initializeAuth: () => void;
   logout: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -21,6 +22,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        const intendedRole = localStorage.getItem('intended_role') || 'citizen';
+        const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
         set({
           token: session.access_token,
           isAuthenticated: true,
@@ -28,9 +31,10 @@ export const useAuthStore = create<AuthState>((set) => ({
             id: session.user.id,
             email: session.user.email || '',
             fullName: session.user.user_metadata?.full_name || 'Citizen',
-            role: 'citizen',
+            role: intendedRole as 'citizen' | 'authority',
             points: 0,
-            badges: []
+            badges: [],
+            ...localProfileData
           },
           isInitialized: true
         });
@@ -42,6 +46,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Listen for OAuth redirects and auth changes
     supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
+        const intendedRole = localStorage.getItem('intended_role') || 'citizen';
+        const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
         set({
           token: session.access_token,
           isAuthenticated: true,
@@ -49,9 +55,10 @@ export const useAuthStore = create<AuthState>((set) => ({
             id: session.user.id,
             email: session.user.email || '',
             fullName: session.user.user_metadata?.full_name || 'Citizen',
-            role: 'citizen',
+            role: intendedRole as 'citizen' | 'authority',
             points: 0,
-            badges: []
+            badges: [],
+            ...localProfileData
           },
           isInitialized: true
         });
@@ -65,4 +72,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     await supabase.auth.signOut();
     set({ user: null, token: null, isAuthenticated: false });
   },
+
+  updateUser: (data: Partial<User>) => {
+    set((state) => {
+      if (!state.user) return state;
+      const updatedUser = { ...state.user, ...data };
+      // Persist the extra details locally
+      localStorage.setItem(`profile_${state.user.id}`, JSON.stringify({
+        phone: updatedUser.phone,
+        aadhaar: updatedUser.aadhaar,
+        state: updatedUser.state,
+        address: updatedUser.address,
+        avatar: updatedUser.avatar
+      }));
+      return { user: updatedUser };
+    });
+  }
 }));

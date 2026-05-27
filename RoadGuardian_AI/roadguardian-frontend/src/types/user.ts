@@ -5,6 +5,11 @@ export interface User {
   role: 'citizen' | 'authority';
   points: number;
   badges: Badge[];
+  phone?: string;
+  aadhaar?: string;
+  state?: string;
+  address?: string;
+  avatar?: string;
 }
 
 export interface Badge {

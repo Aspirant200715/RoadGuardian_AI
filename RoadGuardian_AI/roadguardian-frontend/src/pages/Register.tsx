@@ -1,113 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/authStore';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export const Register = () => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'citizen';
+
+  useEffect(() => {
+    localStorage.setItem('intended_role', role);
+  }, [role]);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={role === 'authority' ? "/authority" : "/dashboard"} replace />;
   }
 
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/dashboard',
-      }
-    });
-  };
-
-  const handleEmailRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleRegister = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + (role === 'authority' ? '/authority' : '/dashboard'),
         }
-      }
-    });
-    
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Registration successful! Check your email to verify your account.');
+      });
+      if (error) toast.error(error.message);
+    } catch (err) {
+      toast.error('Failed to initialize Google registration.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh]">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Join RoadGuardian AI</CardTitle>
-          <p className="text-sm text-muted-foreground">Create an account to help fix your city.</p>
+    <div className="flex flex-col items-center justify-center min-h-[85vh] relative z-10 px-4 bg-background">
+      <div className="mb-8 text-center">
+        <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest border-b-2 border-[#138808] pb-1 inline-block mb-2">Government of India</h2>
+        <h1 className="text-3xl font-extrabold text-foreground">Secure Registration</h1>
+      </div>
+      
+      <Card className="w-full max-w-md bg-card border border-border shadow-md rounded-sm">
+        <CardHeader className="text-center pb-2 bg-muted/50 border-b border-border rounded-t-sm">
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+            {role === 'authority' ? 'Department Official Registration' : 'Citizen Registration'}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Register your identity to participate in national infrastructure monitoring.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Button onClick={handleGoogleLogin} className="w-full h-12 text-lg font-semibold bg-white text-black hover:bg-gray-200">
+        <CardContent className="space-y-6 pt-6">
+          <Button 
+            onClick={handleGoogleRegister} 
+            disabled={loading}
+            className="w-full h-14 text-lg font-semibold bg-white text-black hover:bg-gray-100 shadow-sm border border-slate-300 transition-all rounded-sm"
+          >
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 mr-3" />
-            Register with Google
+            {loading ? 'Connecting securely...' : 'Register via Google ID'}
           </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or register with email</span>
-            </div>
+          
+          <div className="p-4 bg-muted border border-border rounded-sm">
+            <p className="text-xs text-center text-muted-foreground font-mono">
+              By registering, you agree to the official terms of service regarding geospatial data submission.
+            </p>
           </div>
-
-          <form onSubmit={handleEmailRegister} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Full Name</label>
-              <Input 
-                type="text" 
-                placeholder="John Doe" 
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input 
-                type="email" 
-                placeholder="citizen@example.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Password</label>
-              <Input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Registering...' : 'Register'}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center text-sm">
-            Already have an account? <Link to="/login" className="text-primary hover:underline">Log in</Link>
+          
+          <div className="text-center text-sm pt-2">
+            Already registered? <Link to={`/login?role=${role}`} className="text-primary hover:text-primary/80 font-bold hover:underline transition-colors">Login here</Link>
           </div>
         </CardContent>
       </Card>

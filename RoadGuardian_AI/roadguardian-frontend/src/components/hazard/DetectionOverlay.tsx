@@ -1,29 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ScanSearch, ShieldAlert } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import toast from 'react-hot-toast';
 
 interface DetectionOverlayProps {
-  imageUrl: string | null;
+  imageUrl: string | null; // This is a base64 data URL from the file input
   onAnalysisComplete: (results: any) => void;
 }
 
 export const DetectionOverlay = ({ imageUrl, onAnalysisComplete }: DetectionOverlayProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!imageUrl) return;
-    
-    // Simulate AI analysis delay
-    const timer = setTimeout(() => {
-      setIsAnalyzing(false);
-      onAnalysisComplete({
-        severity: 8.5,
-        type: 'pothole',
-        confidence: 94
-      });
-    }, 2500);
-    
-    return () => clearTimeout(timer);
+
+    const analyzeImage = async () => {
+      try {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        
+        if (!apiKey) {
+          console.warn("VITE_GEMINI_API_KEY is missing. Falling back to mock data.");
+          // Fallback to mock data if no key is provided
+          setTimeout(() => {
+            setIsAnalyzing(false);
+            onAnalysisComplete({
+              severity: Math.floor(Math.random() * 5) + 5, // Random severity between 5 and 9
+              type: 'pothole',
+              confidence: Math.floor(Math.random() * 20) + 80 // 80-99%
+            });
+            toast.error("Gemini API Key missing. Showing mock data.");
+          }, 2000);
+          return;
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Strip the "data:image/jpeg;base64," part
+        const base64Data = imageUrl.split(',')[1];
+        const mimeType = imageUrl.substring(imageUrl.indexOf(':') + 1, imageUrl.indexOf(';'));
+
+        const prompt = `Analyze this image of a road or infrastructure hazard.
+          Provide a JSON response with the following keys:
+          - "type": A short string describing the hazard (e.g., "Deep Pothole", "Broken Divider", "Waterlogging").
+          - "severity": A number from 1 to 10 indicating the danger level (10 being most severe).
+          - "confidence": A number from 1 to 100 representing your confidence in this assessment.
+          Return ONLY valid JSON.`;
+
+        const imagePart = {
+          inlineData: {
+            data: base64Data,
+            mimeType
+          },
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const responseText = result.response.text();
+        
+        // Try to parse the JSON response
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          setIsAnalyzing(false);
+          onAnalysisComplete(parsed);
+        } else {
+          throw new Error("Failed to parse Gemini response as JSON");
+        }
+
+      } catch (err: any) {
+        console.error("Gemini Analysis Error:", err);
+        setError(err.message || "Failed to analyze image");
+        setIsAnalyzing(false);
+        // Fallback on error
+        onAnalysisComplete({
+          severity: 8.5,
+          type: 'Unverified Hazard',
+          confidence: 50
+        });
+      }
+    };
+
+    analyzeImage();
+
   }, [imageUrl, onAnalysisComplete]);
 
   if (!imageUrl) return null;
@@ -40,8 +100,8 @@ export const DetectionOverlay = ({ imageUrl, onAnalysisComplete }: DetectionOver
           >
             <ScanSearch className="w-16 h-16 text-primary mb-4" />
           </motion.div>
-          <h3 className="text-xl font-bold text-primary animate-pulse">Running AI Analysis...</h3>
-          <p className="text-sm text-muted-foreground mt-2">Detecting hazards & calculating severity</p>
+          <h3 className="text-xl font-bold text-primary animate-pulse">Running Gemini AI Analysis...</h3>
+          <p className="text-sm text-muted-foreground mt-2">Detecting hazards & calculating severity via Gemini Vision</p>
         </div>
       ) : (
         <motion.div 
@@ -49,7 +109,7 @@ export const DetectionOverlay = ({ imageUrl, onAnalysisComplete }: DetectionOver
           animate={{ opacity: 1 }}
           className="absolute inset-0 z-10 pointer-events-none"
         >
-          {/* Mock Bounding Box */}
+          {/* Mock Bounding Box - visually enhanced */}
           <motion.div 
             initial={{ scale: 1.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -58,7 +118,7 @@ export const DetectionOverlay = ({ imageUrl, onAnalysisComplete }: DetectionOver
           >
             <div className="absolute -top-8 left-[-4px] bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 flex items-center rounded-t shadow-lg">
               <ShieldAlert className="w-3 h-3 mr-1" />
-              Pothole (94%)
+              Analysis Complete
             </div>
           </motion.div>
         </motion.div>

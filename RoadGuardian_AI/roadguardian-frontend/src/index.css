@@ -1,41 +1,77 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
+    --background: 210 40% 98%; /* Light slate background */
+    --foreground: 222.2 84% 4.9%; /* Dark slate text */
+    
+    --card: 0 0% 100%; /* Pure white cards */
+    --card-foreground: 222.2 84% 4.9%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    
+    --primary: 217 91% 33%; /* Official Royal Blue #0747a6 */
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    --destructive: 0 84.2% 60.2%; /* Crisp Crimson */
+    --destructive-foreground: 210 40% 98%;
+    
+    --success: 160 84% 39%; /* Official Emerald */
+    --success-foreground: 0 0% 100%;
+    
+    --border: 214.3 31.8% 91.4%; /* Light gray borders */
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 33%;
+    
+    --radius: 0.3rem; /* Slightly sharper borders for official look */
+  }
+
+  .dark {
+    --background: 222.2 47% 7%; /* Very dark navy background */
     --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
+    
+    --card: 222.2 47% 11%; /* Slightly lighter navy for cards */
     --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
+    
+    --popover: 222.2 47% 11%;
     --popover-foreground: 210 40% 98%;
- 
-    --primary: 191 97% 41%; /* cyan-500 */
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 271 81% 56%; /* purple-600 */
+    
+    --primary: 217 91% 60%; /* Bright blue primary */
+    --primary-foreground: 222.2 47% 11%;
+    
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
- 
+    
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
- 
+    
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
+    
+    --destructive: 0 62.8% 40.6%;
     --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 191 97% 41%;
- 
-    --radius: 0.5rem;
+    
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    
+    --border: 217.2 32.6% 25%; /* Visible dark border */
+    --input: 217.2 32.6% 25%;
+    --ring: 217 91% 60%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;

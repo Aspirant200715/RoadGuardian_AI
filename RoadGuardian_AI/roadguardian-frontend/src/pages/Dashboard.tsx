@@ -3,91 +3,143 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
+import { useReportStore } from '@/store/reportStore';
 import { AnimatedCounter } from '@/components/gamification/AnimatedCounter';
-import { ShieldPlus, Activity, Trophy } from 'lucide-react';
+import { ShieldPlus, Activity, Trophy, MapPin, CalendarClock, Server, AlertTriangle } from 'lucide-react';
 
 export const Dashboard = () => {
   const { user } = useAuthStore();
+  const { reports } = useReportStore();
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-8 max-w-7xl mx-auto px-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b-2 border-[#138808] pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.fullName}</p>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-[#000080] dark:text-foreground">Citizen Dashboard</h1>
+          <p className="text-muted-foreground font-bold text-sm uppercase tracking-wider mt-2">Authorized Profile: {user?.fullName} | Node: IND-204-VX</p>
         </div>
-        <Button size="lg" onClick={() => navigate('/report')}>
-          <ShieldPlus className="mr-2 h-5 w-5" /> Report New Hazard
+        <Button size="lg" onClick={() => navigate('/report')} className="bg-[#FF9933] hover:bg-[#e68a2e] text-white rounded-sm font-black text-sm uppercase shadow-sm border-b-2 border-[#b45309] active:border-b-0 active:translate-y-px px-6 h-12">
+          <ShieldPlus className="mr-2 h-5 w-5" /> File Hazard Report
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Points</CardTitle>
-            <Trophy className="h-4 w-4 text-primary" />
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="border-t-4 border-t-[#000080] dark:border-t-primary rounded-sm shadow-sm bg-white dark:bg-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-slate-50 dark:bg-muted/50 border-b border-border p-4">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-[#000080] dark:text-primary">Civic Score</CardTitle>
+            <Trophy className="h-5 w-5 text-[#FF9933]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              <AnimatedCounter from={0} to={user?.points || 0} />
+          <CardContent className="p-6 flex justify-between items-end">
+            <div>
+              <div className="text-5xl font-black text-[#000080] dark:text-foreground font-mono leading-none">
+                <AnimatedCounter from={0} to={user?.points || 0} />
+              </div>
+              <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Top 5% bracket</p>
             </div>
-            <p className="text-xs text-muted-foreground">Top 5% in your city</p>
+            <div className="text-xs font-mono font-bold bg-muted px-3 py-1.5 border border-border">RANK: HERO</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reports Submitted</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+
+        <Card className="border-t-4 border-t-[#138808] dark:border-t-success rounded-sm shadow-sm bg-white dark:bg-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-slate-50 dark:bg-muted/50 border-b border-border p-4">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-[#000080] dark:text-primary">Logs Submitted</CardTitle>
+            <Activity className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 this week</p>
+          <CardContent className="p-6 flex justify-between items-end">
+            <div>
+               <div className="text-5xl font-black text-foreground font-mono leading-none">{reports.length}</div>
+               <p className="text-xs font-bold text-success uppercase mt-2">Active Tracker</p>
+            </div>
+            <div className="text-xs font-mono font-bold bg-muted px-3 py-1.5 border border-border text-success">ACTIVE</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Verified Reports</CardTitle>
-            <ShieldPlus className="h-4 w-4 text-green-500" />
+
+        <Card className="border-t-4 border-t-[#FF9933] rounded-sm shadow-sm bg-white dark:bg-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-slate-50 dark:bg-muted/50 border-b border-border p-4">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-[#000080] dark:text-primary">Verified Accuracy</CardTitle>
+            <ShieldPlus className="h-5 w-5 text-success" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">66% accuracy rate</p>
+          <CardContent className="p-6 flex justify-between items-end">
+             <div>
+                <div className="text-5xl font-black text-foreground font-mono leading-none">8</div>
+                <p className="text-xs font-bold text-muted-foreground uppercase mt-2">66% accuracy rate</p>
+             </div>
+             <div className="text-xs font-mono font-bold bg-muted px-3 py-1.5 border border-border">VERIFIED</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Reports</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">No recent reports found. Start reporting to help your community!</p>
-            </div>
+      <div className="grid gap-6 md:grid-cols-12 items-start">
+        <Card className="col-span-8 rounded-sm shadow-sm overflow-hidden border-border bg-white dark:bg-card">
+          <div className="bg-[#000080] dark:bg-slate-900 text-white py-3 px-5 flex justify-between items-center border-b border-border/50">
+            <h2 className="font-black uppercase text-sm tracking-widest flex items-center"><AlertTriangle className="w-4 h-4 mr-2 text-[#FF9933]" /> Official Incident Registry</h2>
+          </div>
+          <CardContent className="p-0">
+             <table className="w-full text-left text-sm border-collapse">
+               <thead className="bg-slate-50 dark:bg-muted/50 border-b border-border">
+                 <tr>
+                   <th className="py-3 px-5 font-bold uppercase tracking-wider text-muted-foreground">Log ID</th>
+                   <th className="py-3 px-5 font-bold uppercase tracking-wider text-muted-foreground">Classification</th>
+                   <th className="py-3 px-5 font-bold uppercase tracking-wider text-muted-foreground">Location Vector</th>
+                   <th className="py-3 px-5 font-bold uppercase tracking-wider text-muted-foreground">Status / Severity</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-border">
+                 {reports.slice(0, 5).map(report => (
+                   <tr key={report.id} className="hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors">
+                     <td className="py-4 px-5 font-mono font-bold text-[#000080] dark:text-primary text-[13px]">{report.code}</td>
+                     <td className="py-4 px-5 font-bold text-foreground uppercase">{report.type}</td>
+                     <td className="py-4 px-5">
+                       <div className="flex items-center text-muted-foreground font-medium"><MapPin className="w-4 h-4 mr-1.5" /> {report.location}</div>
+                       <div className="flex items-center text-muted-foreground text-xs mt-1.5"><CalendarClock className="w-3.5 h-3.5 mr-1.5" /> {report.date}</div>
+                     </td>
+                     <td className="py-4 px-5">
+                        <span className={`px-2.5 py-1 rounded-sm font-bold uppercase tracking-wider border text-xs ${
+                          report.status === 'Resolved' ? 'bg-success/10 text-success border-success/30' : 
+                          report.status === 'Pending' ? 'bg-destructive/10 text-destructive border-destructive/30' : 
+                          'bg-muted text-foreground border-border'
+                        }`}>
+                          {report.status}
+                        </span>
+                        <div className="font-mono text-xs mt-2.5 font-bold text-muted-foreground">SEV: {report.severity}/10</div>
+                     </td>
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
           </CardContent>
         </Card>
         
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Gamification Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Current Level: Civic Hero</span>
-                <span className="font-bold text-primary">450 / 500 XP</span>
+        <div className="col-span-4 flex flex-col gap-6 h-full">
+           <Card className="rounded-sm shadow-sm overflow-hidden border-border bg-white dark:bg-card">
+              <div className="bg-slate-50 dark:bg-muted/50 border-b border-border py-3 px-5">
+                <h4 className="font-bold text-sm uppercase text-[#000080] dark:text-primary tracking-wider flex items-center">
+                  <Server className="w-4 h-4 mr-2" /> Clearance Level
+                </h4>
               </div>
-              <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
-                <div className="h-full bg-primary" style={{ width: '90%' }}></div>
-              </div>
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
-              View Badges
-            </Button>
-          </CardContent>
-        </Card>
+              <CardContent className="p-5 space-y-5">
+                <div className="space-y-3 border border-border p-4 rounded-sm bg-slate-50/50 dark:bg-background">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                    <span className="text-[#000080] dark:text-primary">Civic Hero</span>
+                    <span className="font-mono text-[#FF9933]">450 / 500 XP</span>
+                  </div>
+                  <div className="h-3 w-full bg-border rounded-none overflow-hidden border border-border/50">
+                    <div className="h-full bg-[#138808]" style={{ width: '90%' }}></div>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full rounded-sm font-bold uppercase text-xs tracking-wider border-border hover:bg-slate-50 dark:hover:bg-muted h-10" onClick={() => navigate('/profile')}>
+                  Access Full Records
+                </Button>
+              </CardContent>
+           </Card>
+
+           <div className="bg-[#fdf2e9] dark:bg-yellow-950/20 p-4 border border-[#FF9933]/30 rounded-sm mt-auto">
+             <p className="text-xs text-[#b45309] dark:text-yellow-500 font-bold uppercase tracking-wider leading-relaxed text-center">
+               ⚠️ Falsified reporting is a punishable offense under IT Act Section 43.
+             </p>
+           </div>
+        </div>
       </div>
     </div>
   );
