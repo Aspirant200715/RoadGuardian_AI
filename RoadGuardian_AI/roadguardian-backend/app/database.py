@@ -38,6 +38,7 @@ engine = create_async_engine(
     async_url,
     echo=settings.DEBUG,
     pool_pre_ping=True,
+    connect_args={"statement_cache_size": 0}
 )
 logger.info("✅ Connected to PostgreSQL (Supabase)")
 
@@ -45,9 +46,7 @@ async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
 
-# ORM Base Class
-class Base(DeclarativeBase):
-    pass
+from app.models.base import Base
 
 # ======================
 # Session Management
@@ -93,8 +92,10 @@ async def init_db() -> None:
     Initializes the database by creating all tables defined by the ORM models.
     This function should be called at application startup.
     """
-    logger.info("🔄 Initializing database...")
     try:
+        # Import models here so they are registered with Base.metadata before create_all
+        import app.models.hazard
+
         async with engine.begin() as conn:
             # This command inspects all classes that inherit from Base
             # and creates the corresponding tables in the database.
