@@ -80,6 +80,20 @@ class HazardService:
     """
 
     @staticmethod
+    def _calculate_urgency_from_severity(severity_score: float) -> str:
+        """
+        Determines urgency level based on severity score (0.0 to 10.0).
+        """
+        if severity_score < 3.0:
+            return "low"
+        elif severity_score < 6.0:
+            return "medium"
+        elif severity_score < 8.0:
+            return "high"
+        else:
+            return "critical"
+
+    @staticmethod
     async def calculate_severity_score(
         hazard_type: str, 
         confidence: float, 
@@ -212,6 +226,8 @@ class HazardService:
         longitude = data.get("longitude")
         description = data.get("description")
         confidence_score = data.get("confidence_score", 1.0)
+        provided_severity_score = data.get("severity_score")  # AI-provided severity from frontend
+        
         # Query live dynamic weather condition and traffic density at exact coordinate
         weather_info = await WeatherService.get_weather_condition(latitude, longitude)
         traffic_info = await TrafficService.get_traffic_density(latitude, longitude)
@@ -219,13 +235,21 @@ class HazardService:
         resolved_weather = weather_info.get("condition", "clear")
         resolved_traffic = traffic_info.get("density", "low")
         
-        # Calculate severity metadata based on live resolved variables
-        severity_data = await cls.calculate_severity_score(
-            hazard_type=hazard_type,
-            confidence=confidence_score,
-            traffic_density=resolved_traffic,
-            weather=resolved_weather
-        )
+        # If severity score provided from frontend AI, use it; otherwise calculate
+        if provided_severity_score is not None:
+            # Use the AI-detected severity directly
+            severity_data = {
+                "severity_score": min(10.0, max(0.0, float(provided_severity_score))),
+                "urgency_level": cls._calculate_urgency_from_severity(float(provided_severity_score))
+            }
+        else:
+            # Calculate severity metadata based on live resolved variables
+            severity_data = await cls.calculate_severity_score(
+                hazard_type=hazard_type,
+                confidence=confidence_score,
+                traffic_density=resolved_traffic,
+                weather=resolved_weather
+            )
         
         # Resolve address description from coordinates
         location_address = reverse_geocode(latitude, longitude)

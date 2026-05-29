@@ -63,7 +63,11 @@ export const Report = () => {
         else if (t.includes('crack')) parsedType = 'crack';
         else if (t.includes('water') || t.includes('flood')) parsedType = 'waterlogging';
         else if (t.includes('divider') || t.includes('barrier')) parsedType = 'broken_dividers';
-        else if (t.includes('sign') || t.includes('board')) parsedType = 'missing_signs';
+        else if (t.includes('sign') || t.includes('signage') || t.includes('board')) parsedType = 'missing_signs';
+        else if (t.includes('street light') || t.includes('light fault')) parsedType = 'street_light_fault';
+        else if (t.includes('manhole')) parsedType = 'manhole_defect';
+        else if (t.includes('debris') || t.includes('obstruction')) parsedType = 'road_debris';
+        else if (t.includes('pavement')) parsedType = 'pavement_defect';
       }
 
       const formData = new FormData();
@@ -100,6 +104,12 @@ export const Report = () => {
         formData.append('image', imageFile);
         formData.append('hazard_type', parsedType);
         formData.append('description', finalDescription);
+        if (aiResult?.severity) {
+          formData.append('severity_score', String(aiResult.severity));
+        }
+        if (aiResult?.confidence) {
+          formData.append('confidence_score', String(aiResult.confidence));
+        }
         
         await api.post('/hazards/upload', formData);
       } else if (audioBlob) {

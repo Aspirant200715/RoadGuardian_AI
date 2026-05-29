@@ -110,6 +110,8 @@ async def upload_hazard(
     latitude: float = Form(..., description="Latitude coordinate of the hazard (-90 to 90)"),
     longitude: float = Form(..., description="Longitude coordinate of the hazard (-180 to 180)"),
     description: Optional[str] = Form(None, description="Optional text context description"),
+    severity_score: Optional[float] = Form(None, description="AI-detected severity score (0 to 10)"),
+    confidence_score: Optional[float] = Form(None, description="AI model confidence (0 to 100)"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -151,12 +153,16 @@ async def upload_hazard(
 
     # Evaluate using YOLO model stub
     ai_analysis_available = AI_ANALYSIS_AVAILABLE
+    detected_confidence = 0.0
     try:
-        confidence = await detect_hazard_severity(filepath)
+        detected_confidence = await detect_hazard_severity(filepath)
     except Exception as e:
         logger.exception("Failed to analyze image with AI")
-        confidence = 0.0
         ai_analysis_available = False
+
+    # Use provided scores from frontend AI, fallback to backend detection
+    final_confidence = confidence_score if confidence_score is not None else detected_confidence
+    final_severity = severity_score if severity_score is not None else None
 
     # Build hazard creation arguments dictionary
     hazard_data = {
@@ -164,7 +170,8 @@ async def upload_hazard(
         "latitude": latitude,
         "longitude": longitude,
         "description": description,
-        "confidence_score": confidence,
+        "confidence_score": final_confidence,
+        "severity_score": final_severity,
         "ai_analysis_available": ai_analysis_available,
         "traffic_density": "medium",  # Standard baseline fallback
         "weather": "clear"            # Standard baseline fallback

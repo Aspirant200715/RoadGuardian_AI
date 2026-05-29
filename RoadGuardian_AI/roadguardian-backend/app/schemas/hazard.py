@@ -23,6 +23,10 @@ class HazardType(str, Enum):
     waterlogging = "waterlogging"
     broken_dividers = "broken_dividers"
     missing_signs = "missing_signs"
+    street_light_fault = "street_light_fault"
+    manhole_defect = "manhole_defect"
+    road_debris = "road_debris"
+    pavement_defect = "pavement_defect"
     other = "other"
 
 
@@ -52,6 +56,8 @@ class HazardUploadRequest(BaseModel):
     latitude: float = Field(..., ge=-90.0, le=90.0, description="Latitude of the hazard location (-90 to 90)")
     longitude: float = Field(..., ge=-180.0, le=180.0, description="Longitude of the hazard location (-180 to 180)")
     description: Optional[str] = Field(None, max_length=500, description="Optional textual description or comments")
+    severity_score: Optional[float] = Field(None, ge=0.0, le=10.0, description="AI-detected severity score (0 to 10)")
+    confidence_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="AI model confidence percentage (0 to 100)")
 
 
 class VoiceReportRequest(BaseModel):

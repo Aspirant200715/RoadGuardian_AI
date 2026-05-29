@@ -6,9 +6,6 @@ const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor
@@ -17,6 +14,10 @@ api.interceptors.request.use(
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Only set Content-Type to JSON if not FormData
+    if (!(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
     }
     return config;
   },
