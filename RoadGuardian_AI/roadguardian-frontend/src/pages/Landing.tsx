@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Activity, Map, Trophy, ShieldCheck, Zap, Globe2, AlertTriangle, Building2, UserCircle2, Radar, Shield, Server, Mic, PhoneCall, FileText, ChevronRight, ChevronDown, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 
 
@@ -25,35 +26,72 @@ export const Landing = () => {
   };
 
   const triggerVoiceDemo = () => {
-    setVoiceState('listening');
-    setTranscriptText('Listening to microphone input...');
-    setTranslatedText('');
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech Recognition API is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
     
-    // Simulate listening phase
-    const listeningTimer = window.setTimeout(() => {
-      setVoiceState('transcribing');
-      if (voiceLang === 'Hindi') {
-        setTranscriptText('सड़क के बीच में एक बहुत बड़ा गड्ढा है जिससे गाड़ियाँ टकरा रही हैं।');
-      } else if (voiceLang === 'Spanish') {
-        setTranscriptText('Hay un gran bache en medio de la carretera que está dañando los coches.');
-      } else {
-        setTranscriptText('Es gibt ein großes Schlagloch mitten auf der Straße, das Autos beschädigt.');
+    if (voiceLang === 'Hindi') {
+      recognition.lang = 'hi-IN';
+    } else if (voiceLang === 'Spanish') {
+      recognition.lang = 'es-ES';
+    } else if (voiceLang === 'German') {
+      recognition.lang = 'de-DE';
+    } else {
+      recognition.lang = 'en-US';
+    }
+    
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setVoiceState('listening');
+      setTranscriptText('Listening to microphone input...');
+      setTranslatedText('');
+    };
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          setTranscriptText(event.results[i][0].transcript);
+        }
       }
+      if (finalTranscript) {
+        setTranscriptText(finalTranscript);
+      }
+    };
+
+    recognition.onspeechend = () => {
+      recognition.stop();
+    };
+
+    recognition.onend = () => {
+      setVoiceState('transcribing');
       
-      // Simulate translation/structuring phase
+      // Simulate NLP Translation delay
       const translatingTimer = window.setTimeout(() => {
         setVoiceState('completed');
-        if (voiceLang === 'Hindi') {
-          setTranslatedText('Severe pothole detected in the center of the lane. Categorized as critical high severity.');
-        } else if (voiceLang === 'Spanish') {
-          setTranslatedText('Major pothole reported in the middle of the road segment. Categorized as high severity.');
-        } else {
-          setTranslatedText('Large pothole detected on the central highway segment. Categorized as critical.');
-        }
-      }, 2000);
+        // Mock structured translation for the demo
+        setTranslatedText(`Hazard reported. Categorized as potential structural damage. Needs verification.`);
+        toast.success('Demo Report Submitted Successfully!', { icon: '🎉' });
+      }, 1500);
+      
       voiceTimersRef.current.push(translatingTimer);
-    }, 2000);
-    voiceTimersRef.current.push(listeningTimer);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error(event.error);
+      setVoiceState('idle');
+      setTranscriptText('Error: Could not capture speech.');
+    };
+
+    recognition.start();
   };
 
 

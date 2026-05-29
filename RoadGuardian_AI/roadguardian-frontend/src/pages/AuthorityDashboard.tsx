@@ -20,7 +20,9 @@ import {
   Flame,
   Shield,
   Activity,
-  BarChart3
+  BarChart3,
+  Calculator,
+  Timer
 } from 'lucide-react';
 import { api } from '@/services/api';
 import toast from 'react-hot-toast';
@@ -28,7 +30,7 @@ import toast from 'react-hot-toast';
 const COLORS = ['#06b6d4', '#9333ea', '#f59e0b', '#dc2626', '#10b981', '#3b82f6'];
 
 export const AuthorityDashboard = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'pending' | 'active' | 'national'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'pending' | 'active' | 'national' | 'sla'>('analytics');
   
   // VIP State Presentation additions
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
@@ -57,10 +59,19 @@ export const AuthorityDashboard = () => {
   const [activeHazards, setActiveHazards] = useState<any[]>([]);
   const [loadingActive, setLoadingActive] = useState(false);
 
+  // SLA Breaches State
+  const [slaBreaches, setSlaBreaches] = useState<any[]>([]);
+  const [loadingSla, setLoadingSla] = useState(false);
+
   // Modals & Action States
   const [assignCrewModal, setAssignCrewModal] = useState<any | null>(null);
   const [crewName, setCrewName] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
+
+  const [reassignModal, setReassignModal] = useState<any | null>(null);
+  const [newDepartment, setNewDepartment] = useState('');
+  const [isReassigning, setIsReassigning] = useState(false);
+  const [departmentFilter, setDepartmentFilter] = useState('All');
 
   const [resolvingHazard, setResolvingHazard] = useState<any | null>(null);
   const [resolvedImage, setResolvedImage] = useState<File | null>(null);
@@ -108,6 +119,19 @@ export const AuthorityDashboard = () => {
     }
   }, []);
 
+  const fetchSlaBreaches = useCallback(async () => {
+    setLoadingSla(true);
+    try {
+      const response = await api.get('/hazards/authority/sla-breaches');
+      setSlaBreaches(response.data);
+    } catch (error) {
+      console.error("Failed to fetch SLA breaches:", error);
+      toast.error("Failed to load SLA breaches.");
+    } finally {
+      setLoadingSla(false);
+    }
+  }, []);
+
   // Run initial loading based on active tab
   useEffect(() => {
     if (activeTab === 'analytics') {
@@ -116,8 +140,10 @@ export const AuthorityDashboard = () => {
       fetchPending();
     } else if (activeTab === 'active') {
       fetchActive();
+    } else if (activeTab === 'sla') {
+      fetchSlaBreaches();
     }
-  }, [activeTab, fetchAnalytics, fetchPending, fetchActive]);
+  }, [activeTab, fetchAnalytics, fetchPending, fetchActive, fetchSlaBreaches]);
 
   // Bulk actions
   const handleToggleSelect = (id: number) => {
@@ -165,6 +191,25 @@ export const AuthorityDashboard = () => {
       toast.error("Failed to assign repair crew.");
     } finally {
       setIsAssigning(false);
+    }
+  };
+
+  const handleReassignDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reassignModal || !newDepartment) return;
+    setIsReassigning(true);
+    try {
+      await api.put(`/hazards/${reassignModal.id}/department`, { department: newDepartment });
+      toast.success(`Reassigned hazard #${reassignModal.id} to ${newDepartment}.`);
+      setReassignModal(null);
+      setNewDepartment('');
+      if (activeTab === 'pending') fetchPending();
+      if (activeTab === 'active') fetchActive();
+    } catch (error) {
+      console.error("Reassign failed:", error);
+      toast.error("Failed to reassign department.");
+    } finally {
+      setIsReassigning(false);
     }
   };
 
@@ -318,6 +363,17 @@ export const AuthorityDashboard = () => {
               <Globe className="w-4 h-4" />
               National Command
             </button>
+            <button 
+              onClick={() => setActiveTab('sla')}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'sla' 
+                  ? 'bg-red-600 text-white shadow-md' 
+                  : 'text-red-500 hover:bg-red-950/20'
+              }`}
+            >
+              <Timer className="w-4 h-4" />
+              SLA Breaches
+            </button>
           </div>
         </div>
       </div>
@@ -468,6 +524,23 @@ export const AuthorityDashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Department Filter */}
+                  <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
+                    {['All', 'Road Department', 'Water & Sanitation Board', 'Forestry Department', 'Power Department', 'Municipal Corporation'].map(dept => (
+                      <button
+                        key={dept}
+                        onClick={() => setDepartmentFilter(dept)}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-colors ${
+                          departmentFilter === dept 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {dept}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* Bulk operations bar */}
                   <div className="flex items-center justify-between bg-muted/40 p-3 rounded-lg border border-border/60">
                     <div className="flex items-center gap-2.5">
@@ -494,7 +567,7 @@ export const AuthorityDashboard = () => {
 
                   {/* Hazard list */}
                   <div className="divide-y divide-border/60">
-                    {pendingHazards.map((hazard) => (
+                    {pendingHazards.filter(h => departmentFilter === 'All' || h.linked_department === departmentFilter).map((hazard) => (
                       <div key={hazard.id} className="flex flex-col lg:flex-row lg:items-center justify-between py-4 gap-4">
                         <div className="flex items-start gap-3">
                           <input 
@@ -526,6 +599,11 @@ export const AuthorityDashboard = () => {
                                   Voice Report
                                 </span>
                               )}
+                              {hazard.linked_department && (
+                                <span className="bg-indigo-500/10 border border-indigo-500/35 text-indigo-400 text-2xs px-2 py-0.5 rounded-full font-bold">
+                                  {hazard.linked_department}
+                                </span>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
                               {hazard.description || "No specific details provided."}
@@ -536,12 +614,23 @@ export const AuthorityDashboard = () => {
                               {hazard.user?.full_name && (
                                 <span className="flex items-center gap-1"><Award className="w-3 h-3 text-cyan-400" /> By {hazard.user.full_name}</span>
                               )}
+                              {hazard.budget_estimate && (
+                                <span className="flex items-center gap-1 text-[#138808] font-bold">
+                                  <Calculator className="w-3 h-3" /> Est. Budget: ₹{hazard.budget_estimate.toLocaleString()}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
 
                         {/* Actions buttons */}
-                        <div className="flex items-center gap-2 self-end lg:self-center">
+                        <div className="flex flex-wrap items-center gap-2 self-end lg:self-center">
+                          <button
+                            onClick={() => { setReassignModal(hazard); setNewDepartment(hazard.linked_department || 'Municipal Corporation'); }}
+                            className="bg-muted hover:bg-muted-foreground/10 border text-foreground font-bold px-3 py-1.5 rounded-lg text-xs transition"
+                          >
+                            Reassign Dept
+                          </button>
                           <button
                             onClick={() => handleSingleVerify(hazard.id)}
                             className="bg-muted hover:bg-muted-foreground/10 border text-foreground font-bold px-3 py-1.5 rounded-lg text-xs transition"
@@ -639,6 +728,70 @@ export const AuthorityDashboard = () => {
                         </button>
                       </div>
                     </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* SLA BREACHES TAB                                     */}
+      {/* ==================================================== */}
+      {activeTab === 'sla' && (
+        <div className="space-y-6">
+          <Card className="bg-red-950/20 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.15)] text-red-100">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-red-500/30 pb-4">
+              <div>
+                <CardTitle className="text-xl font-bold flex items-center gap-2 text-red-500">
+                  <Timer className="w-5 h-5 animate-pulse" /> Overdue SLAs & Escalations
+                </CardTitle>
+                <p className="text-xs text-red-400 mt-1">Hazards that have breached their mandated repair timeframe.</p>
+              </div>
+              <button 
+                onClick={fetchSlaBreaches}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/50 text-xs font-bold hover:bg-red-900/50 transition text-red-400"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
+              </button>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {loadingSla ? (
+               <div className="flex items-center justify-center py-12">
+                 <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+               </div>
+              ) : slaBreaches.length === 0 ? (
+                <div className="text-center py-12 text-red-400/70 flex flex-col items-center gap-2">
+                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+                  <p className="font-medium text-lg text-green-500">No SLA Breaches!</p>
+                  <p className="text-sm">All hazards are being resolved within mandated timeframes.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {slaBreaches.map((hazard) => (
+                    <div key={hazard.id} className="bg-red-950/40 p-4 rounded-xl border border-red-500/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-red-600 animate-pulse"></div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded shadow-sm">BREACHED</span>
+                          <span className="font-bold uppercase tracking-wide">{hazard.hazard_type.replace('_', ' ')}</span>
+                          <span className="text-red-400 text-xs font-mono ml-2">ID: #{hazard.id}</span>
+                        </div>
+                        <p className="text-sm opacity-80 mb-2">SLA Deadline: <span className="font-bold underline decoration-red-500/50">{new Date(hazard.sla_deadline).toLocaleString()}</span></p>
+                        <p className="text-xs text-red-300">📍 {hazard.location_address}</p>
+                      </div>
+                      
+                      <button 
+                        onClick={() => {
+                          toast.error(`ESCALATED HAZARD #${hazard.id} TO STATE COMMAND`, { icon: '🚨' });
+                          // In a real system, this would make an API call to Escalate
+                        }}
+                        className="bg-red-600 hover:bg-red-500 text-white font-black px-6 py-2 rounded-lg text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(239,68,68,0.5)] transition"
+                      >
+                        Escalate to State
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -858,6 +1011,61 @@ export const AuthorityDashboard = () => {
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-4 py-2 rounded-lg text-xs transition disabled:opacity-50 flex items-center gap-1"
                 >
                   {isAssigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Confirm Dispatch"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* MODAL: REASSIGN DEPARTMENT                             */}
+      {/* ==================================================== */}
+      {reassignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+            <div className="p-5 border-b">
+              <h3 className="text-lg font-bold flex items-center gap-1.5 text-foreground">
+                <Globe className="w-5 h-5 text-indigo-400" /> Reassign Department
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Change the responsible government department for hazard #{reassignModal.id}</p>
+            </div>
+            
+            <form onSubmit={handleReassignDepartment} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Select Department
+                </label>
+                <select 
+                  className="w-full bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-3 py-2 text-sm text-foreground transition"
+                  value={newDepartment}
+                  onChange={(e) => setNewDepartment(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>Select a department</option>
+                  {['Road Department', 'Water & Sanitation Board', 'Forestry Department', 'Power Department', 'Municipal Corporation'].map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t pt-4 mt-6">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg text-xs font-bold border hover:bg-muted/40 transition"
+                  onClick={() => {
+                    setReassignModal(null);
+                    setNewDepartment('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isReassigning || !newDepartment}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition disabled:opacity-50 flex items-center gap-1"
+                >
+                  {isReassigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Reassign"}
                 </button>
               </div>
             </form>

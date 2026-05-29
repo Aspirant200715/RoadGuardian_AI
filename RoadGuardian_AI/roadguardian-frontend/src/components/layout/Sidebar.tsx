@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Map, Trophy, User as UserIcon, ShieldPlus, ShieldAlert, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Map, Trophy, User as UserIcon, ShieldPlus, ShieldAlert, ChevronRight, Briefcase, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import { cn } from '@/utils/utils';
@@ -20,7 +20,11 @@ export const Sidebar = () => {
 
   if (user?.role === 'authority') {
     links.push({ to: '/authority', icon: ShieldAlert, label: 'Department Console' });
+    links.push({ to: '/tenders', icon: Briefcase, label: 'Tenders & Bidding' });
   }
+
+  // Always show WhatsApp Demo for all roles
+  links.push({ to: '/whatsapp-demo', icon: MessageCircle, label: 'WhatsApp Simulator' });
 
   return (
     <>

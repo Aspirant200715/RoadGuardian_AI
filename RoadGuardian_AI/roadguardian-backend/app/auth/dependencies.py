@@ -135,7 +135,15 @@ async def get_current_user(
             points=9999 if email == "president@roadguardian.gov.in" else 0
         )
         db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        try:
+            await db.commit()
+            await db.refresh(user)
+        except Exception as e:
+            await db.rollback()
+            # Race condition: another request might have inserted the user at the exact same time
+            result = await db.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
+            if not user:
+                raise credentials_exception
         
     return user

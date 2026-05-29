@@ -10,6 +10,8 @@ import { UploadCloud, Mic, MapPin, CheckCircle, MicOff, ShieldAlert, AlertTriang
 import toast from 'react-hot-toast';
 import { api } from '@/services/api';
 import { useReportStore } from '@/store/reportStore';
+import { saveOfflineReport } from '@/utils/offlineSync';
+import { v4 as uuidv4 } from 'uuid';
 
 export const Report = () => {
   const navigate = useNavigate();
@@ -68,19 +70,41 @@ export const Report = () => {
       formData.append('latitude', String(finalLat));
       formData.append('longitude', String(finalLng));
 
+      if (!navigator.onLine) {
+        if (imageFile) {
+          await saveOfflineReport({
+            id: uuidv4(),
+            type: 'image',
+            latitude: String(finalLat),
+            longitude: String(finalLng),
+            hazard_type: parsedType,
+            description: finalDescription,
+            mediaBlob: imageFile,
+            timestamp: Date.now()
+          });
+        } else if (audioBlob) {
+          await saveOfflineReport({
+            id: uuidv4(),
+            type: 'voice',
+            latitude: String(finalLat),
+            longitude: String(finalLng),
+            mediaBlob: audioBlob,
+            timestamp: Date.now()
+          });
+        }
+        navigate('/dashboard');
+        return;
+      }
+
       if (imageFile) {
         formData.append('image', imageFile);
         formData.append('hazard_type', parsedType);
         formData.append('description', finalDescription);
         
-        await api.post('/hazards/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post('/hazards/upload', formData);
       } else if (audioBlob) {
         formData.append('audio', audioBlob, 'voice_report.webm');
-        await api.post('/hazards/voice-report', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post('/hazards/voice-report', formData);
       } else {
         toast.error("Please provide an image or voice recording");
         setIsSubmitting(false);

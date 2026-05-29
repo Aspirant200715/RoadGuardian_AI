@@ -5,6 +5,9 @@ import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { useNetwork } from '@/hooks/useNetwork';
+import { DownloadCloud, WifiOff } from 'lucide-react';
 
 const ALERTS = [
   { id: 1, type: 'CRITICAL', text: 'SEVERE WATERLOGGING reported at Outer Ring Road. Avoid route.', color: 'text-destructive' },
@@ -17,8 +20,11 @@ export const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { setSidebarOpen, sidebarOpen, theme, toggleTheme } = useUiStore();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   
   const [currentAlert, setCurrentAlert] = useState(0);
+  const isOnline = useNetwork();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -26,6 +32,25 @@ export const Navbar = () => {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -79,6 +104,16 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-4 z-10">
+          <select 
+            className="bg-transparent text-[10px] sm:text-xs text-muted-foreground hover:text-foreground cursor-pointer outline-none border-b border-transparent focus:border-muted-foreground transition-colors"
+            value={i18n.language}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+          >
+            <option value="en" className="text-black dark:text-white bg-background">English</option>
+            <option value="hi" className="text-black dark:text-white bg-background">हिंदी</option>
+            <option value="es" className="text-black dark:text-white bg-background">Español</option>
+            <option value="de" className="text-black dark:text-white bg-background">Deutsch</option>
+          </select>
           <div className="flex items-center space-x-2 border-r border-border pr-2 sm:pr-4">
             <span onClick={() => handleFontSizeChange('decrease')} className="cursor-pointer hover:text-foreground transition-colors">A-</span>
             <span onClick={() => handleFontSizeChange('reset')} className="cursor-pointer hover:text-foreground text-sm transition-colors">A</span>
@@ -109,7 +144,25 @@ export const Navbar = () => {
             </div>
           </Link>
           
-          <div className="flex flex-1 items-center justify-end space-x-4">
+          <div className="flex flex-1 items-center justify-end space-x-2 sm:space-x-4">
+            {!isOnline && (
+              <div className="flex items-center gap-1.5 bg-destructive text-white px-2.5 py-1 rounded-sm text-xs font-bold shadow-md animate-pulse">
+                <WifiOff className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Offline Mode</span>
+              </div>
+            )}
+            
+            {deferredPrompt && (
+              <Button 
+                size="sm" 
+                onClick={handleInstallClick} 
+                className="bg-[#138808] hover:bg-green-700 text-white rounded-sm font-black text-[10px] sm:text-[11px] uppercase shadow-md h-8 px-2 sm:px-3 flex items-center gap-1.5 border border-[#138808]"
+              >
+                <DownloadCloud className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Install App</span>
+              </Button>
+            )}
+
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
                 <div className="hidden sm:flex flex-col items-end border-r border-white/20 pr-4">

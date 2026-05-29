@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useUiStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { syncOfflineReports } from '@/utils/offlineSync';
 
 import { AppLayout } from '@/components/layout/AppLayout';
 
@@ -16,6 +17,8 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard').then((module) => ({
 const Report = lazy(() => import('@/pages/Report').then((module) => ({ default: module.Report })));
 const Heatmap = lazy(() => import('@/pages/Heatmap').then((module) => ({ default: module.Heatmap })));
 const AuthorityDashboard = lazy(() => import('@/pages/AuthorityDashboard').then((module) => ({ default: module.AuthorityDashboard })));
+const TendersDashboard = lazy(() => import('@/pages/TendersDashboard').then((module) => ({ default: module.TendersDashboard })));
+const WhatsAppSimulator = lazy(() => import('@/pages/WhatsAppSimulator').then((module) => ({ default: module.WhatsAppSimulator })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +60,11 @@ function App() {
     }
   }, [theme]);
 
+  useEffect(() => {
+    window.addEventListener('online', syncOfflineReports);
+    return () => window.removeEventListener('online', syncOfflineReports);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -74,6 +82,8 @@ function App() {
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 <Route path="/heatmap" element={<ProtectedRoute><Heatmap /></ProtectedRoute>} />
                 <Route path="/authority" element={<ProtectedRoute requiredRole="authority"><AuthorityDashboard /></ProtectedRoute>} />
+                <Route path="/tenders" element={<ProtectedRoute requiredRole="authority"><TendersDashboard /></ProtectedRoute>} />
+                <Route path="/whatsapp-demo" element={<WhatsAppSimulator />} />
               </Route>
             </Routes>
           </Suspense>

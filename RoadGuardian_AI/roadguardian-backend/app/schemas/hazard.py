@@ -77,6 +77,17 @@ class SeverityAnalyzeRequest(BaseModel):
 # Response Schemas
 # ==========================================
 
+class ContractorBidResponse(BaseModel):
+    """Schema representing a contractor bid for hazard repair"""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(..., description="Unique bid ID")
+    contractor_name: str = Field(..., description="Name of the bidding contractor")
+    bid_amount: float = Field(..., description="Bid amount in INR")
+    estimated_days: int = Field(..., description="Estimated days to complete repair")
+    status: str = Field(..., description="Status of the bid (pending, accepted, rejected)")
+    submitted_at: datetime = Field(..., description="Timestamp of bid submission")
+
 class HazardResponse(BaseModel):
     """Schema representing serialized hazard models returned to clients"""
     model_config = ConfigDict(from_attributes=True)
@@ -103,6 +114,11 @@ class HazardResponse(BaseModel):
     ai_analysis_available: bool = Field(True, description="Whether AI analysis was available for this report")
     sla_deadline: Optional[datetime] = Field(None, description="The deadline for resolving the hazard before breaching SLA")
     sla_breached: bool = Field(False, description="Whether the SLA has been breached")
+    
+    linked_department: Optional[str] = Field(None, description="Government department linked to the hazard")
+    department_ticket_id: Optional[str] = Field(None, description="External ticket ID for the linked department")
+    budget_estimate: Optional[float] = Field(None, description="Estimated budget requirement for repair")
+    bids: Optional[List[ContractorBidResponse]] = Field(None, description="List of contractor bids")
 
     @model_validator(mode="before")
     @classmethod

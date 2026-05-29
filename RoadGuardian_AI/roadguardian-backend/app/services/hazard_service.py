@@ -167,6 +167,33 @@ class HazardService:
             "factors": factors
         }
 
+    @staticmethod
+    def calculate_budget_estimate(hazard_type: str, severity_score: float) -> float:
+        """
+        AI Predictive Budgeting algorithm estimating base repair cost (in INR).
+        """
+        base_costs = {
+            "pothole": 5000,
+            "crack": 3500,
+            "waterlogging": 12000,
+            "broken_dividers": 15000,
+            "missing_signs": 8000,
+            "other": 5000
+        }
+        
+        base = base_costs.get(str(hazard_type).lower(), 5000)
+        
+        # Non-linear scaling for severe hazards
+        if severity_score > 8.0:
+            multiplier = severity_score * 1.5
+        else:
+            multiplier = severity_score
+            
+        estimated_budget = base * multiplier
+        
+        # Round to nearest 500
+        return round(estimated_budget / 500) * 500.0
+
     @classmethod
     async def create_hazard(
         cls, 
@@ -211,6 +238,24 @@ class HazardService:
             sla_deadline = now + timedelta(days=7)
         else:
             sla_deadline = now + timedelta(days=14)
+            
+        # Phase 2: Inter-Departmental AI Triage Routing
+        linked_department = "Municipal Corporation"
+        if hazard_type == "waterlogging":
+            linked_department = "Water & Sanitation Board"
+        elif hazard_type in ["pothole", "crack", "missing_signs", "broken_dividers"]:
+            linked_department = "Road Department"
+        elif hazard_type == "other":
+            # Very basic keyword analysis for fallen trees or power lines if description exists
+            if description:
+                desc_lower = description.lower()
+                if "tree" in desc_lower or "wood" in desc_lower:
+                    linked_department = "Forestry Department"
+                elif "wire" in desc_lower or "power" in desc_lower or "electric" in desc_lower:
+                    linked_department = "Power Department"
+
+        # Phase 5: Predictive Budgeting
+        budget_estimate = cls.calculate_budget_estimate(hazard_type, severity_data["severity_score"])
 
         # Create ORM instance
         new_hazard = Hazard(
@@ -226,7 +271,9 @@ class HazardService:
             description=description,
             location_address=location_address,
             sla_deadline=sla_deadline,
-            sla_breached=False
+            sla_breached=False,
+            linked_department=linked_department,
+            budget_estimate=budget_estimate
         )
         
         db.add(new_hazard)

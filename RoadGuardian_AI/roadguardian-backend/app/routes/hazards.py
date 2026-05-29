@@ -454,6 +454,59 @@ async def update_hazard_status(
 # Authority Dashboard Endpoints
 # ==========================================
 
+class DepartmentReassignRequest(BaseModel):
+    department: str
+
+@router.put("/{hazard_id}/department", response_model=HazardResponse)
+async def reassign_department(
+    hazard_id: int,
+    payload: DepartmentReassignRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Manually reassign the hazard to a different department.
+    Restricted to authority/admin accounts.
+    """
+    if current_user.role not in ["authority", "admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only authority or admin accounts are permitted to reassign departments."
+        )
+
+    stmt = (
+        select(Hazard)
+        .where(Hazard.id == hazard_id)
+        .options(selectinload(Hazard.user), selectinload(Hazard.resolved_by))
+    )
+    res = await db.execute(stmt)
+    hazard = res.scalar_one_or_none()
+
+    if not hazard:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Hazard report with ID {hazard_id} not found."
+        )
+
+    hazard.linked_department = payload.department
+    await db.commit()
+    await db.refresh(hazard)
+
+    try:
+        import json
+        from app.utils.websocket import manager
+        hazard_resp = HazardResponse.model_validate(hazard)
+        await manager.broadcast({
+            "type": "status_update",
+            "data": json.loads(hazard_resp.model_dump_json())
+        })
+    except Exception as ws_err:
+        logger.warning(f"⚠️ Failed to broadcast hazard department update: {ws_err}")
+
+    return hazard
+
+# ==========================================
+
 class AssignCrewRequest(BaseModel):
     crew_name: str
 

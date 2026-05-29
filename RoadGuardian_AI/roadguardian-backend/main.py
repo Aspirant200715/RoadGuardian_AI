@@ -103,6 +103,21 @@ try:
 except (ImportError, AttributeError):
     logger.warning("⚠️ Hazards router (app.routes.hazards) not found or unimplemented. Skipping inclusion.")
 
+# Include tenders router
+try:
+    from app.routes.tenders import router as tenders_router
+    app.include_router(tenders_router)
+    logger.info("✅ Tenders router loaded successfully.")
+except (ImportError, AttributeError):
+    logger.warning("⚠️ Tenders router not found or unimplemented. Skipping inclusion.")
+
+# Include whatsapp router
+try:
+    from app.routes.whatsapp import router as whatsapp_router
+    app.include_router(whatsapp_router)
+    logger.info("✅ WhatsApp router loaded successfully.")
+except (ImportError, AttributeError):
+    logger.warning("⚠️ WhatsApp router not found or unimplemented. Skipping inclusion.")
 
 # WebSocket endpoint route for real-time updates
 @app.websocket("/ws/hazards")
