@@ -71,10 +71,10 @@ User WhatsApp:    "✅ Ticket ID: #15 created! Earned 10 points! 🌟"
 
 | # | Feature | Description | Impact |
 |---|---------|-------------|--------|
-| 1 | **📱 WhatsApp Integration** | Report via WhatsApp, no app needed | 500M+ users can report |
+| 1 | **📱 WhatsApp Integration** | Includes a live **WhatsApp Sandbox** for local testing without Twilio | 500M+ users can report |
 | 2 | **🤖 AI Classification** | Auto-detect: pothole, water, cracks, debris, etc. | 85%+ accuracy, instant categorization |
 | 3 | **📊 Severity Scoring** | Calculate 0-10 score based on type, weather, traffic | Authorities prioritize high-risk repairs |
-| 4 | **🗺️ Real-Time Dashboard** | Live map with all hazards, filters, assignments | Instant visibility, auto-refresh |
+| 4 | **🗺️ Live Hazard Map** | Geospatial interactive heatmap of all reported hazards | Instant visibility, auto-refresh |
 | 5 | **⚡ Hotspot Prediction** | AI identifies high-risk zones before critical | Pre-deploy crews, save budget |
 | 6 | **🎖️ Gamification** | Points for reports, badges for milestones | 3x more civic participation |
 | 7 | **⏰ SLA Tracking** | Auto-track 24-hour repair deadlines | Accountability & compliance |
@@ -82,16 +82,17 @@ User WhatsApp:    "✅ Ticket ID: #15 created! Earned 10 points! 🌟"
 | 9 | **🚨 Emergency Alerts** | Critical (severity ≥8) auto-dispatch | Instant emergency response |
 | 10 | **📍 Reverse Geocoding** | Coordinates → Human-readable address | Better UX |
 
-### 🟡 **TIER 2: Advanced Analytics**
+### 🟡 **TIER 2: Advanced Analytics & Monitoring**
 - **Weather Impact**: Severity +2.0 during rain, +1.5 during snow
 - **Traffic Correlation**: Peak hours (8-10 AM, 5-7 PM) = +2.0 multiplier
 - **Budget Recommendations**: AI calculates repair costs per zone
-- **Performance Tracking**: Monthly SLA compliance metrics
+- **WhatsApp Comm Center**: Dedicated real-time feed for incoming WhatsApp reports
 
-### 🔴 **TIER 3: Enterprise Features**
+### 🔴 **TIER 3: Enterprise Features (Government Portal)**
+- **Formal Government Aesthetic**: Professional UI with Navy, Saffron, and India Green themes
+- **🏗️ Tenders & Procurement Dashboard**: Open public tenders for contractors to bid on critical hazards
 - **Multi-Department Routing**: Auto-assigns to Road, Water, Drainage
 - **Authority Dashboard**: Complete management with filters, assignments
-- **User Role Management**: Different permissions for Citizens vs Authority
 - **Escalation System**: Auto-escalates critical issues
 
 ---
@@ -676,6 +677,6 @@ MIT License - see LICENSE file
 
 ---
 
-**Made with ❤️ for safer roads worldwide**
+**Made with high efforts for safer roads worldwide**
 
 Last Updated: May 30, 2026 | Version: 2.0.0 | Status: ✅ **Production Ready**

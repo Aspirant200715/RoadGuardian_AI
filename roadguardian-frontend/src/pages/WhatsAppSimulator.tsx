@@ -179,6 +179,7 @@ export const WhatsAppSimulator = () => {
           <strong>Twilio Webhook Simulator:</strong><br/> This UI generates a mock <code>x-www-form-urlencoded</code> POST payload to test the <code>/whatsapp/webhook</code> endpoint locally without API keys.
         </p>
       </div>
+      </div>
     </div>
   );
 };
