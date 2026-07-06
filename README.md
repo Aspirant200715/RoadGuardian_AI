@@ -8,7 +8,7 @@
 
 ---
 
-## 📖 Quick Navigation
+## Quick Navigation
 
 - [What is RoadGuardian?](#-what-is-roadguardian)
 - [Key Features](#-key-features)
@@ -26,7 +26,7 @@
 
 ---
 
-## 📋 What is RoadGuardian?
+## What is RoadGuardian?
 
 ### The Problem
 ```
@@ -60,44 +60,44 @@ Action:           [Ticket #15 → Road Dept, SLA: 24 hours]
                          ↓ (WebSocket broadcast)
 Dashboard:        [Report visible instantly on Authority Portal]
                          ↓ (Gamification)
-User WhatsApp:    "✅ Ticket ID: #15 created! Earned 10 points! 🌟"
+User WhatsApp:    "✅ Ticket ID: #15 created! Earned 10 points! "
 ```
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-### 🟢 **TIER 1: Core Features** (Production Ready)
+###  **TIER 1: Core Features** (Production Ready)
 
 | # | Feature | Description | Impact |
 |---|---------|-------------|--------|
-| 1 | **📱 WhatsApp Integration** | Includes a live **WhatsApp Sandbox** for local testing without Twilio | 500M+ users can report |
-| 2 | **🤖 AI Classification** | Auto-detect: pothole, water, cracks, debris, etc. | 85%+ accuracy, instant categorization |
-| 3 | **📊 Severity Scoring** | Calculate 0-10 score based on type, weather, traffic | Authorities prioritize high-risk repairs |
-| 4 | **🗺️ Live Hazard Map** | Geospatial interactive heatmap of all reported hazards | Instant visibility, auto-refresh |
-| 5 | **⚡ Hotspot Prediction** | AI identifies high-risk zones before critical | Pre-deploy crews, save budget |
-| 6 | **🎖️ Gamification** | Points for reports, badges for milestones | 3x more civic participation |
-| 7 | **⏰ SLA Tracking** | Auto-track 24-hour repair deadlines | Accountability & compliance |
-| 8 | **🧠 Pattern Detection** | Recurring issues (5+ same location) | Identify permanent vs temp fixes |
-| 9 | **🚨 Emergency Alerts** | Critical (severity ≥8) auto-dispatch | Instant emergency response |
-| 10 | **📍 Reverse Geocoding** | Coordinates → Human-readable address | Better UX |
+| 1 | ** WhatsApp Integration** | Includes a live **WhatsApp Sandbox** for local testing without Twilio | 500M+ users can report |
+| 2 | ** AI Classification** | Auto-detect: pothole, water, cracks, debris, etc. | 85%+ accuracy, instant categorization |
+| 3 | ** Severity Scoring** | Calculate 0-10 score based on type, weather, traffic | Authorities prioritize high-risk repairs |
+| 4 | ** Live Hazard Map** | Geospatial interactive heatmap of all reported hazards | Instant visibility, auto-refresh |
+| 5 | ** Hotspot Prediction** | AI identifies high-risk zones before critical | Pre-deploy crews, save budget |
+| 6 | ** Gamification** | Points for reports, badges for milestones | 3x more civic participation |
+| 7 | ** SLA Tracking** | Auto-track 24-hour repair deadlines | Accountability & compliance |
+| 8 | ** Pattern Detection** | Recurring issues (5+ same location) | Identify permanent vs temp fixes |
+| 9 | ** Emergency Alerts** | Critical (severity ≥8) auto-dispatch | Instant emergency response |
+| 10 |** Reverse Geocoding** | Coordinates → Human-readable address | Better UX |
 
-### 🟡 **TIER 2: Advanced Analytics & Monitoring**
+### **TIER 2: Advanced Analytics & Monitoring**
 - **Weather Impact**: Severity +2.0 during rain, +1.5 during snow
 - **Traffic Correlation**: Peak hours (8-10 AM, 5-7 PM) = +2.0 multiplier
 - **Budget Recommendations**: AI calculates repair costs per zone
 - **WhatsApp Comm Center**: Dedicated real-time feed for incoming WhatsApp reports
 
-### 🔴 **TIER 3: Enterprise Features (Government Portal)**
+### **TIER 3: Enterprise Features (Government Portal)**
 - **Formal Government Aesthetic**: Professional UI with Navy, Saffron, and India Green themes
-- **🏗️ Tenders & Procurement Dashboard**: Open public tenders for contractors to bid on critical hazards
+- ** Tenders & Procurement Dashboard**: Open public tenders for contractors to bid on critical hazards
 - **Multi-Department Routing**: Auto-assigns to Road, Water, Drainage
 - **Authority Dashboard**: Complete management with filters, assignments
 - **Escalation System**: Auto-escalates critical issues
 
 ---
 
-## 🚀 Quick Start (10 min)
+##  Quick Start (10 min)
 
 ### Prerequisites
 
@@ -170,23 +170,23 @@ ngrok http 8000
 
 # Get HTTPS URL: https://xxx-yyy-zzz.ngrok-free.dev
 
-# ⚠️ Add to Twilio console:
+#  Add to Twilio console:
 # https://console.twilio.com → Messaging → Services → Sandbox
 ```
 
-### 🎉 Access Points
+###  Access Points
 
 ```
-🌐 Frontend:           http://localhost:5173
-📚 API Documentation:  http://127.0.0.1:8000/docs
-💬 WhatsApp Simulator: http://localhost:5173/whatsapp-demo
-📊 Messages Dashboard: http://localhost:5173/whatsapp-messages
-🏛️  Authority Portal:   http://localhost:5173/authority
+Frontend:           http://localhost:5173
+API Documentation:  http://127.0.0.1:8000/docs
+WhatsApp Simulator: http://localhost:5173/whatsapp-demo
+Messages Dashboard: http://localhost:5173/whatsapp-messages
+Authority Portal:   http://localhost:5173/authority
 ```
 
 ---
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ### Complete Data Flow: WhatsApp → Dashboard
 
@@ -223,7 +223,7 @@ ngrok http 8000
    └─ All connected dashboards refresh (<100ms)
    ↓
 8. Response to WhatsApp:
-   └─ "✅ Ticket ID: #15 created! Earned 10 points!"
+   └─ "Ticket ID: #15 created! Earned 10 points!"
    ↓
 9. Authority Dashboard Updates:
    └─ Report visible, marked CRITICAL, ready for action
@@ -247,7 +247,7 @@ Real-Time Dashboards (React + WebSocket)
 
 ---
 
-## 📖 Using the System
+##  Using the System
 
 ### For Citizens
 
@@ -255,7 +255,7 @@ Real-Time Dashboards (React + WebSocket)
 ```
 1. Save Twilio number to contacts
 2. Send: "pothole at market street"
-3. Get: "✅ Ticket ID: #X created! Earned 10 points!"
+3. Get: "Ticket ID: #X created! Earned 10 points!"
 4. See on dashboard next refresh
 5. Earn badges for 5, 15, 30+ reports
 ```
@@ -276,15 +276,15 @@ Login: http://localhost:5173/authority
 
 Dashboard shows:
 ─────────────────
-📊 Statistics: 42 pending, 8 at-risk (SLA <2hrs), 15 resolved
-🗺️  Map: Red (critical 7-10), Yellow (high 5-7), Blue (medium), Green (low)
-📋 Reports: Filter by type/status/severity, click to assign/resolve
-📈 Predictions: Next 7 days forecast, budget recommendations
+Statistics: 42 pending, 8 at-risk (SLA <2hrs), 15 resolved
+Map: Red (critical 7-10), Yellow (high 5-7), Blue (medium), Green (low)
+Reports: Filter by type/status/severity, click to assign/resolve
+Predictions: Next 7 days forecast, budget recommendations
 ```
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 ### Key Endpoints
 
@@ -325,7 +325,7 @@ Response:
 
 ---
 
-## 🗄️ Database Schema
+##  Database Schema
 
 ### Hazards Table
 ```sql
@@ -432,7 +432,7 @@ python verify_predictions.py         # Verify AI
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Production Checklist
 
@@ -479,7 +479,7 @@ docker-compose logs -f backend
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 RoadGuardian_AI/
@@ -508,8 +508,8 @@ RoadGuardian_AI/
 │  │  ├─ pages/
 │  │  │  ├─ Dashboard.tsx
 │  │  │  ├─ AuthorityDashboard.tsx
-│  │  │  ├─ WhatsAppSimulator.tsx ⭐
-│  │  │  ├─ WhatsAppMessages.tsx  ⭐
+│  │  │  ├─ WhatsAppSimulator.tsx 
+│  │  │  ├─ WhatsAppMessages.tsx  
 │  │  │  ├─ Leaderboard.tsx
 │  │  │  └─ Heatmap.tsx
 │  │  ├─ components/
@@ -536,7 +536,7 @@ RoadGuardian_AI/
 
 ---
 
-## 🔑 Key Algorithms
+## Key Algorithms
 
 ### Severity Formula
 ```
@@ -558,7 +558,7 @@ Example:
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Backend Issues
 
@@ -605,7 +605,7 @@ python recreate_db.py
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 ```bash
 # Fork and clone
@@ -632,7 +632,7 @@ git push origin feature/amazing-feature
 
 ---
 
-## 📊 System Stats
+## System Stats
 
 | Metric | Value |
 |--------|-------|
@@ -645,20 +645,20 @@ git push origin feature/amazing-feature
 
 ---
 
-## 📞 Support
+## Support
 
 - **Issues**: https://github.com/Aspirant200715/RoadGuardian_AI/issues
 - **Discussions**: https://github.com/Aspirant200715/RoadGuardian_AI/discussions
 
 ---
 
-## 📜 License
+##  License
 
 MIT License - see LICENSE file
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Ultralytics** - YOLOv8 object detection
 - **Twilio** - WhatsApp platform
@@ -667,7 +667,7 @@ MIT License - see LICENSE file
 
 ---
 
-## 🎉 Next Steps
+##  Next Steps
 
 1. **Setup**: Follow Quick Start above (10 minutes)
 2. **Test**: Open WhatsApp Simulator, send messages
@@ -679,4 +679,4 @@ MIT License - see LICENSE file
 
 **Made with high efforts for safer roads worldwide**
 
-Last Updated: May 30, 2026 | Version: 2.0.0 | Status: ✅ **Production Ready**
+Last Updated: May 30, 2026 | Version: 2.0.0 | Status:  **Production Ready**
