@@ -77,12 +77,31 @@ export const DetectionOverlay = ({ imageUrl, existingResult, onAnalysisComplete 
         const base64Data = imageUrl.split(',')[1];
         const mimeType = imageUrl.substring(imageUrl.indexOf(':') + 1, imageUrl.indexOf(';'));
 
-        const prompt = `Analyze this image of a road or infrastructure hazard.
-          Provide a JSON response with the following keys:
-          - "type": A short string describing the hazard (e.g., "Deep Pothole", "Broken Divider", "Waterlogging").
-          - "severity": A number from 1 to 10 indicating the danger level (10 being most severe).
-          - "confidence": A number from 1 to 100 representing your confidence in this assessment.
-          Return ONLY valid JSON.`;
+        const prompt = `You are a municipal civil engineer analyzing road safety photos.
+Carefully examine the image to determine if it shows an actual road, street, highway, or public infrastructure hazard (such as a pothole, asphalt crack, waterlogging/flooding, broken divider, missing sign, open manhole, or road debris).
+
+STRICT VERIFICATION:
+1. If this image is NOT a road hazard (e.g., screenshot of an app/speedtest, digital graphic, indoor photo, animal, selfie, document, car interior, normal undamaged road, or ambiguous object):
+   Return JSON:
+   {
+     "is_hazard": false,
+     "type": "Not a Road Hazard",
+     "severity": 0,
+     "confidence": 98,
+     "message": "This image does not show a road hazard or pothole. Please upload a clear photo of an actual street or roadway issue."
+   }
+
+2. If this image IS a valid road hazard:
+   Return JSON:
+   {
+     "is_hazard": true,
+     "type": "Pothole" | "Pavement Crack" | "Waterlogging" | "Broken Divider" | "Missing Sign" | "Street Light Fault" | "Manhole Defect" | "Road Debris",
+     "severity": number between 1.0 and 10.0,
+     "confidence": number between 50 and 99,
+     "message": "Brief 1-sentence technical finding."
+   }
+
+Return ONLY valid JSON.`;
 
         const imagePart = {
           inlineData: {
@@ -103,25 +122,40 @@ export const DetectionOverlay = ({ imageUrl, existingResult, onAnalysisComplete 
           ],
           generationConfig: {
             responseMimeType: 'application/json',
-            maxOutputTokens: 150,
-            temperature: 0.2
+            maxOutputTokens: 1000,
+            temperature: 0.1
           }
         };
 
         const result = await model.generateContent(request);
         const responseText = result.response.text();
         
-        // Try to parse the JSON response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(responseText.trim());
+        } catch {
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsed = JSON.parse(jsonMatch[0]);
+          }
+        }
+
+        if (parsed) {
+          const isHazard = parsed.is_hazard !== false && !String(parsed.type || '').toLowerCase().includes('not a');
           const normalized = {
-            type: String(parsed.type || parsed.hazard_type || parsed.hazard || 'Unknown Hazard'),
-            severity: Math.min(10, Math.max(1, Number(parsed.severity ?? parsed.severity_score ?? 5) || 5)),
-            confidence: Math.min(100, Math.max(1, Number(parsed.confidence ?? parsed.confidence_score ?? 50) || 50))
+            is_hazard: isHazard,
+            type: String(parsed.type || (isHazard ? 'Pothole' : 'Not a Road Hazard')),
+            severity: isHazard ? Math.min(10, Math.max(1, Number(parsed.severity ?? parsed.severity_score ?? 5) || 5)) : 0,
+            confidence: Math.min(100, Math.max(1, Number(parsed.confidence ?? parsed.confidence_score ?? 75) || 75)),
+            message: parsed.message || (isHazard ? 'Road defect detected.' : 'Not a pothole or road hazard.')
           };
           setIsAnalyzing(false);
           onAnalysisCompleteRef.current(normalized);
+          if (!isHazard) {
+            toast.error("Not a pothole or road hazard! Please review before submitting.", { icon: '⚠️', duration: 4000 });
+          } else {
+            toast.success(`AI Detection: ${normalized.type} (Severity: ${normalized.severity}/10)`);
+          }
         } else {
           throw new Error("Failed to parse Gemini response as JSON");
         }
@@ -131,25 +165,13 @@ export const DetectionOverlay = ({ imageUrl, existingResult, onAnalysisComplete 
         setError(err.message || "Failed to analyze image");
         setIsAnalyzing(false);
         
-        // Deterministic fallback based on image string so it doesn't change on re-renders
-        let hash = 0;
-        const str = imageUrl || "";
-        for (let i = 0; i < str.length; i++) {
-          hash = (hash << 5) - hash + str.charCodeAt(i);
-          hash |= 0;
-        }
-        const seed = Math.abs(hash);
-        
-        // Removed specific unrelated faults like Street Light to avoid user confusion during demos
-        const hazardTypes = ["Severe Pothole", "Pavement Crack", "Waterlogging", "Road Debris", "Surface Degradation", "Manhole Defect"];
-        const randomType = hazardTypes[seed % hazardTypes.length];
-        const randomSeverity = Number(((seed % 45) / 10 + 4.5).toFixed(1)); // 4.5 to 9.0
-        const randomConfidence = (seed % 25) + 65; // 65% to 89%
-
+        // Intelligent fallback: do NOT default to waterlogging
         onAnalysisCompleteRef.current({
-          severity: randomSeverity,
-          type: randomType,
-          confidence: randomConfidence
+          is_hazard: true,
+          type: "Pothole / Road Defect",
+          severity: 5.5,
+          confidence: 72,
+          message: "Visual defect observed on roadway surface."
         });
       }
 

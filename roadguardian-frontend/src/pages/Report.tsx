@@ -58,7 +58,7 @@ export const Report = () => {
     setIsSubmitting(true);
     let parsedType = 'other';
     try {
-      if (aiResult?.type) {
+      if (aiResult?.type && aiResult?.is_hazard !== false) {
         const t = aiResult.type.toLowerCase();
         if (t.includes('pothole')) parsedType = 'pothole';
         else if (t.includes('crack')) parsedType = 'crack';
@@ -74,6 +74,10 @@ export const Report = () => {
       const formData = new FormData();
       formData.append('latitude', String(finalLat));
       formData.append('longitude', String(finalLng));
+      formData.append('hazard_type', parsedType);
+      formData.append('description', finalDescription);
+      formData.append('severity_score', String(aiResult?.is_hazard === false ? 0 : (aiResult?.severity || 5.0)));
+      formData.append('confidence_score', String(aiResult?.confidence || 85));
 
       if (!navigator.onLine) {
         let savedOffline = true;
@@ -116,15 +120,6 @@ export const Report = () => {
 
       if (imageFile) {
         formData.append('image', imageFile);
-        formData.append('hazard_type', parsedType);
-        formData.append('description', finalDescription);
-        if (aiResult?.severity) {
-          formData.append('severity_score', String(aiResult.severity));
-        }
-        if (aiResult?.confidence) {
-          formData.append('confidence_score', String(aiResult.confidence));
-        }
-        
         await api.post('/hazards/upload', formData);
       } else if (audioBlob) {
         formData.append('audio', audioBlob, 'voice_report.webm');
@@ -334,27 +329,64 @@ export const Report = () => {
                 <DetectionOverlay imageUrl={image} existingResult={aiResult} onAnalysisComplete={setAiResult} />
                 
                 {aiResult && (
-                  <div className="border border-destructive bg-[#fef2f2] dark:bg-destructive/10 rounded-sm shadow-sm overflow-hidden mt-8">
-                    <div className="bg-destructive text-white py-3 px-5 flex items-center font-black text-xs uppercase tracking-wider">
-                      <ShieldAlert className="mr-2 h-5 w-5" /> Detection Results Log
+                  aiResult.is_hazard === false || aiResult.type?.toLowerCase().includes('not a') ? (
+                    <div className="border-2 border-amber-500 bg-amber-50 dark:bg-amber-950/20 p-6 rounded-sm shadow-sm space-y-4 mt-8">
+                      <div className="flex items-center gap-3 text-amber-800 dark:text-amber-400 font-black text-sm uppercase tracking-wider">
+                        <AlertTriangle className="h-6 w-6 text-amber-600 shrink-0" />
+                        AI Analysis: Not a Pothole or Road Hazard
+                      </div>
+                      <p className="text-sm font-medium text-amber-950 dark:text-amber-200 leading-relaxed">
+                        {aiResult.message || "The uploaded image does not show a pothole, asphalt crack, or public road defect."}
+                      </p>
+                      <div className="bg-white/80 dark:bg-card/80 p-3 rounded-sm border border-amber-300 dark:border-amber-800 text-xs font-mono text-muted-foreground">
+                        AI Classification: <strong className="text-amber-700 dark:text-amber-300">{aiResult.type}</strong> | Confidence: {aiResult.confidence}%
+                      </div>
+                      <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                        <Button 
+                          type="button" 
+                          onClick={() => {
+                            setImage(null);
+                            setImageFile(null);
+                            setAiResult(null);
+                            setStep(1);
+                          }}
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-bold uppercase text-xs tracking-wider rounded-sm h-11"
+                        >
+                          Upload Different Image
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleNext}
+                          className="border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950 font-bold uppercase text-xs tracking-wider rounded-sm h-11"
+                        >
+                          Proceed as General Inquiry
+                        </Button>
+                      </div>
                     </div>
-                    <table className="w-full text-left text-sm font-mono">
-                      <tbody className="divide-y divide-destructive/20">
-                        <tr>
-                          <td className="py-3 px-5 font-bold text-destructive/80 w-1/3 uppercase tracking-wider">Classification</td>
-                          <td className="py-3 px-5 font-black uppercase text-destructive text-base">{aiResult.type}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-3 px-5 font-bold text-destructive/80 uppercase tracking-wider">Confidence</td>
-                          <td className="py-3 px-5 font-bold text-foreground text-base">{aiResult.confidence}%</td>
-                        </tr>
-                        <tr className="bg-destructive/5">
-                          <td className="py-4 px-5 font-bold text-destructive/80 uppercase tracking-wider">Severity Score</td>
-                          <td className="py-4 px-5 font-black text-destructive text-2xl">{aiResult.severity} / 10</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  ) : (
+                    <div className="border border-destructive bg-[#fef2f2] dark:bg-destructive/10 rounded-sm shadow-sm overflow-hidden mt-8">
+                      <div className="bg-destructive text-white py-3 px-5 flex items-center font-black text-xs uppercase tracking-wider">
+                        <ShieldAlert className="mr-2 h-5 w-5" /> Detection Results Log
+                      </div>
+                      <table className="w-full text-left text-sm font-mono">
+                        <tbody className="divide-y divide-destructive/20">
+                          <tr>
+                            <td className="py-3 px-5 font-bold text-destructive/80 w-1/3 uppercase tracking-wider">Classification</td>
+                            <td className="py-3 px-5 font-black uppercase text-destructive text-base">{aiResult.type}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-3 px-5 font-bold text-destructive/80 uppercase tracking-wider">Confidence</td>
+                            <td className="py-3 px-5 font-bold text-foreground text-base">{aiResult.confidence}%</td>
+                          </tr>
+                          <tr className="bg-destructive/5">
+                            <td className="py-4 px-5 font-bold text-destructive/80 uppercase tracking-wider">Severity Score</td>
+                            <td className="py-4 px-5 font-black text-destructive text-2xl">{aiResult.severity} / 10</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -464,11 +496,20 @@ export const Report = () => {
                         <tbody className="divide-y divide-border h-full">
                           <tr>
                             <td className="py-4 px-6 font-bold uppercase text-muted-foreground w-1/3 bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Detected Hazard</td>
-                            <td className="py-4 px-6 font-black text-foreground uppercase">{aiResult?.type}</td>
+                            <td className={`py-4 px-6 font-black uppercase flex items-center gap-2 ${aiResult?.is_hazard === false ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
+                              {aiResult?.type}
+                              {aiResult?.is_hazard === false && (
+                                <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 border border-amber-300 dark:border-amber-800 rounded-sm">
+                                  Non-Hazard
+                                </span>
+                              )}
+                            </td>
                           </tr>
                           <tr>
                             <td className="py-4 px-6 font-bold uppercase text-muted-foreground bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Severity Rating</td>
-                            <td className="py-4 px-6 font-black text-destructive text-lg">{aiResult?.severity} / 10</td>
+                            <td className="py-4 px-6 font-black text-destructive text-lg">
+                              {aiResult?.is_hazard === false ? '0.0 / 10 (Not a Hazard)' : `${aiResult?.severity} / 10`}
+                            </td>
                           </tr>
                           <tr>
                             <td className="py-4 px-6 font-bold uppercase text-muted-foreground bg-slate-50/50 dark:bg-background border-r border-border tracking-wider">Coordinates</td>
@@ -490,6 +531,18 @@ export const Report = () => {
                      </table>
                    </div>
                 </div>
+
+                {aiResult?.is_hazard === false && (
+                  <div className="bg-amber-50 dark:bg-amber-950/20 p-4 border border-amber-400 rounded-sm flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider">Notice: Non-Hazard Photo</h4>
+                      <p className="text-xs text-amber-800 dark:text-amber-200 mt-1">
+                        AI analysis verified that this photo does not show a pothole or roadway damage. If submitted, it will be classified under general observations.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-[#fdf2e9] dark:bg-yellow-950/20 p-5 border border-[#FF9933]/30 flex items-start gap-4 rounded-sm">
                    <AlertTriangle className="w-6 h-6 text-[#FF9933] shrink-0 mt-0.5" />
