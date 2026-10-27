@@ -135,16 +135,17 @@ export const Report = () => {
     } catch (error: any) {
       console.error("Submission failed", error);
       
-      // Determine if this is a network-level error (backend unreachable)
+      // Determine if this is a network-level error or timeout
       const isNetworkError = 
         error?.code === 'ERR_NETWORK' || 
         error?.code === 'ERR_CONNECTION_REFUSED' ||
         error?.code === 'ECONNABORTED' ||
         error?.message?.includes('Network Error') || 
+        error?.message?.includes('timeout') ||
         !error?.response;
       
       if (isNetworkError) {
-        // Backend is unreachable — save offline so user's work isn't lost
+        // Backend is waking up or temporarily unreachable — save offline so user's work isn't lost
         let savedOffline = true;
 
         if (imageFile) {
@@ -174,11 +175,11 @@ export const Report = () => {
         }
 
         if (!savedOffline) {
-          toast.error('Backend is unreachable and offline save failed. Please check your connection and try again.');
+          toast.error('Unable to save report locally. Please check storage permissions.');
           return;
         }
 
-        toast.success('Backend unavailable — report saved offline. It will sync automatically when the server is back.');
+        toast.success('Report registered locally! It will automatically sync as soon as the server finishes startup.', { icon: '💾', duration: 6000 });
         navigate('/dashboard');
         return;
       }
@@ -552,11 +553,18 @@ export const Report = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4 p-6 border-t border-border bg-slate-50 dark:bg-muted/50 justify-between mt-auto">
-                <Button variant="outline" onClick={handlePrev} className="rounded-sm h-14 px-8 font-bold uppercase text-sm tracking-wider border-border bg-white dark:bg-card">Edit Details</Button>
-                <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full sm:w-auto bg-[#138808] hover:bg-green-700 text-white h-14 px-12 font-black uppercase text-sm tracking-widest shadow-md flex items-center">
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : 'Submit Official Report'}
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-4 p-6 border-t border-border bg-slate-50 dark:bg-muted/50 justify-between items-center mt-auto">
+                <Button variant="outline" onClick={handlePrev} className="w-full sm:w-auto rounded-sm h-14 px-8 font-bold uppercase text-sm tracking-wider border-border bg-white dark:bg-card">Edit Details</Button>
+                <div className="w-full sm:w-auto flex flex-col items-center sm:items-end gap-1.5">
+                  <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full sm:w-auto bg-[#138808] hover:bg-green-700 text-white h-14 px-12 font-black uppercase text-sm tracking-widest shadow-md flex items-center justify-center">
+                    {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting Report...</> : 'Submit Official Report'}
+                  </Button>
+                  {isSubmitting && (
+                    <p className="text-[11px] text-muted-foreground animate-pulse font-mono text-center sm:text-right">
+                      Contacting municipal node (Render spin-up may take ~30s)...
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           )}

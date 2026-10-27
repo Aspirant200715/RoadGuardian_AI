@@ -152,18 +152,20 @@ async def upload_hazard(
             detail="Could not write file to local disk storage."
         )
 
-    # Evaluate using YOLO model stub
-    ai_analysis_available = AI_ANALYSIS_AVAILABLE
-    detected_confidence = 0.0
-    try:
-        detected_confidence = await detect_hazard_severity(filepath)
-    except Exception as e:
-        logger.exception("Failed to analyze image with AI")
-        ai_analysis_available = False
+    # If frontend AI (Gemini) already supplied confidence and severity, use them directly
+    # to avoid heavy YOLO download/CPU inference delay on Render
+    ai_analysis_available = True
+    if confidence_score is not None:
+        final_confidence = confidence_score
+    else:
+        try:
+            final_confidence = await detect_hazard_severity(filepath)
+        except Exception as e:
+            logger.exception("Failed to analyze image with AI")
+            ai_analysis_available = False
+            final_confidence = 0.85
 
-    # Use provided scores from frontend AI, fallback to backend detection
-    final_confidence = confidence_score if confidence_score is not None else detected_confidence
-    final_severity = severity_score if severity_score is not None else None
+    final_severity = severity_score if severity_score is not None else 5.0
 
     # Build hazard creation arguments dictionary
     hazard_data = {

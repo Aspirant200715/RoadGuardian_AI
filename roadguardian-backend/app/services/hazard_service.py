@@ -251,8 +251,15 @@ class HazardService:
                 weather=resolved_weather
             )
         
-        # Resolve address description from coordinates
-        location_address = reverse_geocode(latitude, longitude)
+        # Resolve address description from coordinates with safe async wrapper to prevent blocking worker
+        try:
+            import asyncio
+            location_address = await asyncio.wait_for(
+                asyncio.to_thread(reverse_geocode, latitude, longitude),
+                timeout=1.5
+            )
+        except Exception:
+            location_address = "Sector Coordinate Zone"
         
         # Determine SLA deadline based on severity score
         now = datetime.utcnow()

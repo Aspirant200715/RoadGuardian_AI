@@ -6,6 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/services/api';
 import { AnimatedCounter } from '@/components/gamification/AnimatedCounter';
 import { ShieldPlus, Activity, Trophy, MapPin, CalendarClock, Server, AlertTriangle } from 'lucide-react';
+import localforage from 'localforage';
+import { syncOfflineReports } from '@/utils/offlineSync';
 
 const formatCoord = (val: any) => {
   if (val === null || val === undefined || val === '') return 'N/A';
@@ -28,10 +30,35 @@ export const Dashboard = () => {
     const fetchReports = async () => {
       try {
         const response = await api.get('/hazards/my-reports');
-        setReports(response.data);
+        const serverReports = Array.isArray(response.data) ? response.data : [];
+        setReports(serverReports);
         await useAuthStore.getState().refreshUser();
       } catch (error) {
-        console.error("Failed to fetch reports:", error);
+        console.warn("Server request pending or timed out, loading local cache:", error);
+      } finally {
+        // Always merge any locally queued offline reports so user never loses submitted reports
+        try {
+          const offlineQueue: any[] = (await localforage.getItem('roadguardian_offline_reports')) || [];
+          if (offlineQueue.length > 0) {
+            const mappedOffline = offlineQueue.map((item, idx) => ({
+              id: `OFFLINE-${idx + 1}`,
+              hazard_type: item.hazard_type || 'other',
+              status: 'pending_sync',
+              severity_score: item.severity_score || 5.0,
+              latitude: Number(item.latitude) || 0,
+              longitude: Number(item.longitude) || 0,
+              description: `[Sync Pending] ${item.description || ''}`,
+              image_url: item.mediaBase64 || '',
+              created_at: new Date(item.timestamp).toISOString()
+            }));
+            setReports((prev) => {
+              const existingIds = new Set((prev || []).map((p: any) => String(p.id)));
+              const newItems = mappedOffline.filter(m => !existingIds.has(m.id));
+              return [...newItems, ...(prev || [])];
+            });
+            syncOfflineReports();
+          }
+        } catch (_) {}
       }
     };
     if (user?.id) {
