@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +71,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         path = request.url.path.lstrip('/')
         first_seg = path.split('/', 1)[0] if path else ''
         if first_seg not in ('static', 'api', 'auth', 'docs'):
-            return FileResponse(_STATIC_INDEX)
+            return FileResponse(STATIC_INDEX)
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -161,7 +161,7 @@ async def authority_page():
     """Serve SPA index for the Authority dashboard route."""
     if not STATIC_INDEX.exists():
         return JSONResponse(status_code=503, content={"detail": "Frontend static assets are unavailable"})
-    return FileResponse(_STATIC_INDEX)
+    return FileResponse(STATIC_INDEX)
 
 
 @app.get("/health")
@@ -213,7 +213,7 @@ async def spa_fallback(full_path: str):
         raise HTTPException(status_code=404)
     if not STATIC_INDEX.exists():
         return JSONResponse(status_code=503, content={"detail": "Frontend static assets are unavailable"})
-    return FileResponse(_STATIC_INDEX)
+    return FileResponse(STATIC_INDEX)
 
 
 

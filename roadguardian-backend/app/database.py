@@ -46,12 +46,24 @@ if "postgresql+asyncpg" in async_url:
     engine_connect_args["statement_cache_size"] = 0
     engine_connect_args["prepared_statement_name_func"] = lambda: f"__asyncpg_{uuid4()}__"
 
+is_sqlite = "sqlite" in async_url
+
+engine_kwargs = {
+    "echo": False,
+    "connect_args": engine_connect_args,
+}
+
+if not is_sqlite:
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 300,
+        "pool_pre_ping": False,
+    })
+
 engine = create_async_engine(
     async_url,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    poolclass=NullPool,
-    connect_args=engine_connect_args
+    **engine_kwargs
 )
 logger.info("✅ Connected to PostgreSQL (Supabase)")
 

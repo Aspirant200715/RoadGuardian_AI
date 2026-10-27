@@ -56,7 +56,7 @@ logs/
 *.pth
 *.onnx
 *.weights
-models/
+/models/
 
 # Uploads
 uploads/
