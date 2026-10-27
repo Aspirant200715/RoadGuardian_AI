@@ -12,7 +12,7 @@ export const Leaderboard = () => {
     const fetchLeaderboard = async () => {
       try {
         const response = await api.get(`/auth/leaderboard?period=${period}`);
-        setLeaderboard(response.data);
+        setLeaderboard(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error("Failed to fetch leaderboard", error);
       }

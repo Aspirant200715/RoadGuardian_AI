@@ -18,7 +18,7 @@ export const Heatmap = () => {
     const fetchHazards = async () => {
       try {
         const response = await api.get('/hazards/public/active');
-        setHazards(response.data);
+        setHazards(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error("Failed to fetch active hazards", error);
       } finally {
