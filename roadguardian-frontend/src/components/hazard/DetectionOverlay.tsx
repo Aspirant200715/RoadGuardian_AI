@@ -71,7 +71,7 @@ export const DetectionOverlay = ({ imageUrl, existingResult, onAnalysisComplete 
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         // Strip the "data:image/jpeg;base64," part
         const base64Data = imageUrl.split(',')[1];
