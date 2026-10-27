@@ -38,27 +38,28 @@
 
 <div align="center">
 
-[![RoadGuardian AI Video Demo](https://img.shields.io/badge/▶%EF%B8%8F_Watch_Product_Walkthrough-Click_to_Watch-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=placeholder_video_id)
+<!-- Animated High-Definition Walkthrough Demonstration -->
+<a href="https://road-guardian-ai-beta.vercel.app/roadguardian-demo.mp4" target="_blank">
+  <img src="docs/roadguardian-demo.gif" alt="RoadGuardian AI Video Demonstration" width="800" style="border-radius: 8px; border: 2px solid #FF9933; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+</a>
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                                                                        │
-│                 ▶️  ROADGUARDIAN AI — SYSTEM WALKTHROUGH               │
-│                                                                        │
-│   [ Video Demo Link Placeholder: Replace with your Loom/YouTube URL ]  │
-│                   https://youtu.be/YOUR_DEMO_VIDEO_ID                  │
-│                                                                        │
-│   ⏱️ Timestamps:                                                        │
-│   • 00:00 — Project Vision & Architecture Overview                    │
-│   • 00:35 — 1-Click Instant Citizen Registration & Google OAuth        │
-│   • 01:10 — Live Gemini 2.5 Flash Road Hazard Vision Analysis         │
-│   • 01:45 — Strict Civil Engineering False-Positive Rejection         │
-│   • 02:20 — Offline-First PWA Storage & 1-Tap Queue Synchronization   │
-│   • 03:00 — WhatsApp Civic Bot & AI Triage Simulator                  │
-│   • 03:40 — Department Authority Dashboard, Heatmap & Public Tenders  │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <em>👆 Click the animation above to watch the <strong>High-Definition 720p HD MP4 Walkthrough</strong> (24s).</em>
+</p>
+
+[![Watch MP4 Demo](https://img.shields.io/badge/▶%EF%B8%8F_Play_HD_Video_(MP4)-docs%2Froadguardian--demo.mp4-138808?style=for-the-badge&logo=quicktime)](docs/roadguardian-demo.mp4)
+[![Online Video Stream](https://img.shields.io/badge/🌐_Stream_Video-road--guardian--ai--beta.vercel.app%2Froadguardian--demo.mp4-000080?style=for-the-badge)](https://road-guardian-ai-beta.vercel.app/roadguardian-demo.mp4)
+[![YouTube / Loom Placeholder](https://img.shields.io/badge/🎥_YouTube_Demo-Click_to_Watch-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=placeholder_video_id)
+
+| Timestamp | Demonstration Phase | Validated Feature / Engineering Innovation |
+| :---: | :--- | :--- |
+| **00:00** | **Executive Intro** | National Road Safety Portal, Digital India Architecture & Live Node Telemetry |
+| **00:03** | **Zero-Friction Onboarding** | Instant 1-Click Citizen Registration, Government ID issuing & Session persistence |
+| **00:07** | **Gemini 2.5 Flash Vision AI** | Real-time road scan, pothole detection (94.8% conf), severity scoring (7.8/10) |
+| **00:11** | **Strict Civil Validation** | Automatic rejection of screenshots/non-hazards to protect municipal bandwidth |
+| **00:14** | **Offline-First PWA Sync** | Local IndexedDB queue, 1-Tap Manual Sync & zero data loss reconciliation |
+| **00:18** | **WhatsApp Civic Bot** | End-to-end interactive reporting simulator, automatic triage & ticket dispatch |
+| **00:21** | **Authority Portal & Tenders** | Departmental triage, live 3D heatmap clusters & public contractor repair tenders |
 
 </div>
 
