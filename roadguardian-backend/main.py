@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,33 +52,73 @@ app = FastAPI(
 )
 
 # CORS middleware configurations
-cors_origins = [o.rstrip("/") for o in settings.CORS_ORIGINS] if settings.CORS_ORIGINS else ["*"]
-allow_creds = "*" not in cors_origins
+cors_origins = [o.rstrip("/") for o in settings.CORS_ORIGINS] if settings.CORS_ORIGINS else []
+default_production_origins = [
+    "https://road-guardian-ai-beta.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173"
+]
+for origin in default_production_origins:
+    if origin not in cors_origins:
+        cors_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=allow_creds,
+    allow_origin_regex=r".*",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def ensure_cors_headers(request: Request, call_next):
+    """Guarantees CORS headers on every response, including OPTIONS preflight and exceptions."""
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin") or "*"
+        headers = {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "*"),
+            "Access-Control-Max-Age": "86400",
+        }
+        return Response(status_code=204, headers=headers)
+
+    response = await call_next(request)
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+    return response
 
 
 # Global Exception Handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Custom exception handler for standard HTTP errors"""
-    # If a 404 occurred for a client-side SPA route, serve the SPA index so the
-    # frontend router can handle the path. Avoid doing this for API/static paths.
+    # If a 404 occurred for a client-side SPA route and index exists, serve index
     if exc.status_code == 404:
         path = request.url.path.lstrip('/')
         first_seg = path.split('/', 1)[0] if path else ''
-        if first_seg not in ('static', 'api', 'auth', 'docs'):
-            return FileResponse(STATIC_INDEX)
+        if first_seg not in ('static', 'api', 'auth', 'docs', 'hazards', 'uploads', 'whatsapp', 'tenders', 'ws'):
+            if STATIC_INDEX.exists():
+                return FileResponse(STATIC_INDEX)
 
+    origin = request.headers.get("origin") or "*"
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true"
+        }
     )
 
 
@@ -86,9 +126,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def generic_exception_handler(request: Request, exc: Exception):
     """Custom global exception handler for uncaught server errors"""
     logger.error(f"🔥 Unhandled server exception: {exc}", exc_info=True)
+    origin = request.headers.get("origin") or "*"
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true"
+        }
     )
 
 
