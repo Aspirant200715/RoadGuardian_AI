@@ -28,6 +28,7 @@
 | Resource | Environment | URL / Endpoint |
 | :--- | :--- | :--- |
 | **Official Web Portal** | Production (Vercel) | [https://road-guardian-ai-beta.vercel.app](https://road-guardian-ai-beta.vercel.app) |
+| **Video** | Drive Link | [https://drive.google.com/file/d/1J_QiFKTOtFO-4scgLGBTkvma5qaZwV7f/view?usp=sharing](https://drive.google.com/file/d/1J_QiFKTOtFO-4scgLGBTkvma5qaZwV7f/view?usp=sharing) |
 | **API Backend Gateway** | Production (Render) | [https://roadguardian-ai-fhvy.onrender.com](https://roadguardian-ai-fhvy.onrender.com) |
 | **Swagger Interactive Docs** | OpenAPI Specification | [https://roadguardian-ai-fhvy.onrender.com/docs](https://roadguardian-ai-fhvy.onrender.com/docs) |
 | **System Health Check** | Live Telemetry Probe | [https://roadguardian-ai-fhvy.onrender.com/health](https://roadguardian-ai-fhvy.onrender.com/health) |
@@ -47,9 +48,9 @@
   <em>👆 Click the animation above to watch the <strong>High-Definition 720p HD MP4 Walkthrough</strong> (24s).</em>
 </p>
 
-[![Watch MP4 Demo](https://img.shields.io/badge/▶%EF%B8%8F_Play_HD_Video_(MP4)-docs%2Froadguardian--demo.mp4-138808?style=for-the-badge&logo=quicktime)](docs/roadguardian-demo.mp4)
+
+[![Online Video Stream](https://img.shields.io/badge/🌐_Stream_Video-road--guardian--ai--beta.vercel.app%2Froadguardian--demo.mp4-000080?style=for-the-badge)](https://drive.google.com/file/d/1J_QiFKTOtFO-4scgLGBTkvma5qaZwV7f/view?usp=sharing)
 [![Online Video Stream](https://img.shields.io/badge/🌐_Stream_Video-road--guardian--ai--beta.vercel.app%2Froadguardian--demo.mp4-000080?style=for-the-badge)](https://road-guardian-ai-beta.vercel.app/roadguardian-demo.mp4)
-[![YouTube / Loom Placeholder](https://img.shields.io/badge/🎥_YouTube_Demo-Click_to_Watch-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=placeholder_video_id)
 
 | Timestamp | Demonstration Phase | Validated Feature / Engineering Innovation |
 | :---: | :--- | :--- |
