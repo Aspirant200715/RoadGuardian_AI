@@ -52,10 +52,13 @@ app = FastAPI(
 )
 
 # CORS middleware configurations
+cors_origins = [o.rstrip("/") for o in settings.CORS_ORIGINS] if settings.CORS_ORIGINS else ["*"]
+allow_creds = "*" not in cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_creds,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -140,10 +143,8 @@ else:
     logger.warning("⚠️ Static directory not found; skipping static file mount.")
 
 UPLOADS_DIR = Path(__file__).resolve().parent / "uploads"
-if UPLOADS_DIR.exists():
-    app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
-else:
-    logger.warning("⚠️ Uploads directory not found; skipping uploads file mount.")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
 # Core endpoints

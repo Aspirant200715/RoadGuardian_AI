@@ -3,23 +3,30 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
-export default defineConfig(({ command }) => ({
-  // Use root base during dev server, and /static/ when building for backend
-  base: command === 'serve' ? '/' : '/static/',
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      manifestFilename: 'manifest.json',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-      manifest: {
-        name: 'RoadGuardian AI - Road Safety Platform',
-        short_name: 'RoadGuardian',
-        description: 'AI-powered road safety platform',
-        theme_color: '#000000',
-        background_color: '#000000',
-        display: 'standalone',
-        start_url: '/static/index.html',
+export default defineConfig(({ command }) => {
+  const isBackendBuild = process.env.BUILD_TO_BACKEND === 'true';
+  const base = isBackendBuild ? '/static/' : '/';
+  const outDir = isBackendBuild
+    ? path.resolve(__dirname, '../roadguardian-backend/static')
+    : 'dist';
+  const startUrl = isBackendBuild ? '/static/index.html' : '/';
+
+  return {
+    base,
+    plugins: [
+      react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        manifestFilename: 'manifest.json',
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        manifest: {
+          name: 'RoadGuardian AI - Road Safety Platform',
+          short_name: 'RoadGuardian',
+          description: 'AI-powered road safety platform',
+          theme_color: '#000000',
+          background_color: '#000000',
+          display: 'standalone',
+          start_url: startUrl,
         icons: [
           {
             src: 'icons/icon-72.png',
@@ -84,7 +91,7 @@ export default defineConfig(({ command }) => ({
     port: 5173,
   },
   build: {
-    outDir: path.resolve(__dirname, '../roadguardian-backend/static'),
+    outDir,
     emptyOutDir: true,
     assetsDir: 'assets',
     rollupOptions: {
@@ -126,4 +133,5 @@ export default defineConfig(({ command }) => ({
       }
     }
   }
-}));
+};
+});
