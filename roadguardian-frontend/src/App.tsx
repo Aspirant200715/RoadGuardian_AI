@@ -34,7 +34,14 @@ const queryClient = new QueryClient({
 const ProtectedRoute = ({ children, requiredRole }: { children: ReactNode; requiredRole?: 'citizen' | 'authority' }) => {
   const { isAuthenticated, isInitialized, user } = useAuthStore();
   
-  if (!isInitialized) return <div className="flex h-screen w-full items-center justify-center text-primary animate-pulse font-bold text-xl">Loading Session...</div>;
+  if (!isInitialized) {
+    return (
+      <div className="flex flex-col h-[70vh] w-full items-center justify-center text-[#000080] dark:text-primary gap-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#000080]/20 dark:border-primary/20 border-t-[#000080] dark:border-t-primary"></div>
+        <p className="animate-pulse font-bold text-sm tracking-widest uppercase">Verifying Department Clearance...</p>
+      </div>
+    );
+  }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   
   if (requiredRole && user?.role !== requiredRole) {

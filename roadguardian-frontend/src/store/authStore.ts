@@ -9,6 +9,7 @@ type AuthSubscription = {
 };
 
 let authSubscription: AuthSubscription | null = null;
+let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 interface AuthState {
   user: User | null;
@@ -37,6 +38,48 @@ const syncUserWithBackend = async (token: string, fullName: string, role: 'citiz
     console.error("Failed to sync auth state with backend:", error);
     return null;
   }
+};
+
+const applySession = (session: any, set: any) => {
+  localStorage.removeItem('guest_token');
+  localStorage.removeItem('guest_user');
+
+  const intendedRole = localStorage.getItem('intended_role') || 'citizen';
+  const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
+  const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Citizen';
+  
+  set({
+    token: session.access_token,
+    isAuthenticated: true,
+    user: {
+      id: session.user.id,
+      email: session.user.email || '',
+      fullName,
+      role: intendedRole as 'citizen' | 'authority',
+      points: 0,
+      badges: [],
+      ...localProfileData
+    },
+    isInitialized: true
+  });
+  
+  // Sync with backend asynchronously
+  syncUserWithBackend(session.access_token, fullName, intendedRole as 'citizen' | 'authority').then((dbUser) => {
+    if (dbUser) {
+      set((state: any) => ({
+        user: state.user ? {
+          ...state.user,
+          fullName: dbUser.full_name || state.user.fullName,
+          role: dbUser.role as 'citizen' | 'authority',
+          points: dbUser.points ?? state.user.points,
+          badges: dbUser.badges || state.user.badges || []
+        } : null
+      }));
+      if (dbUser.role === 'citizen' && intendedRole === 'authority') {
+        toast.error("Unauthorized! Your email does not have official department clearance.");
+      }
+    }
+  });
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -76,6 +119,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       authSubscription.unsubscribe();
       authSubscription = null;
     }
+    if (fallbackTimer) {
+      clearTimeout(fallbackTimer);
+      fallbackTimer = null;
+    }
 
     const hasOAuthHash = typeof window !== 'undefined' && (
       window.location.hash.includes('access_token') ||
@@ -83,53 +130,60 @@ export const useAuthStore = create<AuthState>((set) => ({
       window.location.search.includes('code=')
     );
 
+    // Check for OAuth error in the hash
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const errorMsg = hashParams.get('error_description') || hashParams.get('error');
+      if (errorMsg) {
+        console.error("OAuth error received:", errorMsg);
+        toast.error(`Authentication error: ${decodeURIComponent(errorMsg).replace(/\+/g, ' ')}`);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+
+    // Direct manual extraction if access_token is in hash
+    if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token=')) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || '';
+      if (accessToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ data }) => {
+            if (data?.session) {
+              if (fallbackTimer) clearTimeout(fallbackTimer);
+              applySession(data.session, set);
+              window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+          })
+          .catch((err) => {
+            console.warn("Manual setSession non-fatal:", err);
+          });
+      }
+    }
+
+    // Hard safety timeout: guaranteed to resolve isInitialized within 2.5s
+    fallbackTimer = setTimeout(() => {
+      const currentState = useAuthStore.getState();
+      if (!currentState.isInitialized) {
+        console.warn("Auth initialization safety timer triggered.");
+        const guestToken = localStorage.getItem('guest_token');
+        const guestUserStr = localStorage.getItem('guest_user');
+        if (guestToken && guestUserStr) {
+          try {
+            const guestUser = JSON.parse(guestUserStr);
+            set({ token: guestToken, isAuthenticated: true, user: guestUser, isInitialized: true });
+            return;
+          } catch (_) {}
+        }
+        set({ isInitialized: true, isAuthenticated: false, user: null, token: null });
+      }
+    }, 2500);
+
     // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        localStorage.removeItem('guest_token');
-        localStorage.removeItem('guest_user');
-
-        const intendedRole = localStorage.getItem('intended_role') || 'citizen';
-        const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
-        const fullName = session.user.user_metadata?.full_name || 'Citizen';
-        
-        set({
-          token: session.access_token,
-          isAuthenticated: true,
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            fullName,
-            role: intendedRole as 'citizen' | 'authority',
-            points: 0,
-            badges: [],
-            ...localProfileData
-          },
-          isInitialized: true
-        });
-        
-        // Sync with backend
-        syncUserWithBackend(session.access_token, fullName, intendedRole as 'citizen' | 'authority').then((dbUser) => {
-          if (dbUser) {
-            set((state) => ({
-              user: state.user ? {
-                ...state.user,
-                fullName: dbUser.full_name || state.user.fullName,
-                role: dbUser.role as 'citizen' | 'authority',
-                points: dbUser.points ?? state.user.points,
-                badges: dbUser.badges || state.user.badges || []
-              } : null
-            }));
-            if (dbUser.role === 'citizen' && intendedRole === 'authority') {
-              toast.error("Unauthorized! Your email does not have official department clearance.");
-            }
-          }
-        });
-        return;
-      }
-
-      // If we are currently parsing an OAuth hash in the URL, wait for onAuthStateChange
-      if (hasOAuthHash) {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        applySession(session, set);
         return;
       }
 
@@ -140,6 +194,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (guestToken && guestUserStr) {
         try {
           const guestUser = JSON.parse(guestUserStr);
+          if (fallbackTimer) clearTimeout(fallbackTimer);
           set({
             token: guestToken,
             isAuthenticated: true,
@@ -153,54 +208,38 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       }
 
+      // If not parsing OAuth hash, finish initialization as unauthenticated
+      if (!hasOAuthHash) {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        set({ isInitialized: true, isAuthenticated: false, user: null, token: null });
+      }
+    }).catch((err) => {
+      console.warn("supabase.auth.getSession failed:", err);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       set({ isInitialized: true, isAuthenticated: false, user: null, token: null });
     });
 
     // Listen for OAuth redirects and auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        localStorage.removeItem('guest_token');
-        localStorage.removeItem('guest_user');
-
-        const intendedRole = localStorage.getItem('intended_role') || 'citizen';
-        const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
-        const fullName = session.user.user_metadata?.full_name || 'Citizen';
-        
-        set({
-          token: session.access_token,
-          isAuthenticated: true,
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            fullName,
-            role: intendedRole as 'citizen' | 'authority',
-            points: 0,
-            badges: [],
-            ...localProfileData
-          },
-          isInitialized: true
-        });
-        
-        // Sync with backend
-        syncUserWithBackend(session.access_token, fullName, intendedRole as 'citizen' | 'authority').then((dbUser) => {
-          if (dbUser) {
-            set((state) => ({
-              user: state.user ? {
-                ...state.user,
-                fullName: dbUser.full_name || state.user.fullName,
-                role: dbUser.role as 'citizen' | 'authority',
-                points: dbUser.points ?? state.user.points,
-                badges: dbUser.badges || state.user.badges || []
-              } : null
-            }));
-            if (dbUser.role === 'citizen' && intendedRole === 'authority') {
-              toast.error("Unauthorized! Your email does not have official department clearance.");
-            }
-          }
-        });
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        applySession(session, set);
+      } else if (event === 'SIGNED_OUT') {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
       } else {
-        const hasGuest = !!localStorage.getItem('guest_token');
-        if (!hasGuest && !hasOAuthHash) {
+        const guestToken = localStorage.getItem('guest_token');
+        const guestUserStr = localStorage.getItem('guest_user');
+        if (guestToken && guestUserStr) {
+          try {
+            const guestUser = JSON.parse(guestUserStr);
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            set({ user: guestUser, token: guestToken, isAuthenticated: true, isInitialized: true });
+            return;
+          } catch (_) {}
+        }
+        if (!hasOAuthHash) {
+          if (fallbackTimer) clearTimeout(fallbackTimer);
           set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
         }
       }
