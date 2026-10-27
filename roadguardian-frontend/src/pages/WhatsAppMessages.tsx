@@ -219,7 +219,7 @@ export const WhatsAppMessages = () => {
                     </span>
                     {msg.severity_score && (
                       <span className={`ml-2 text-sm font-semibold ${getSeverityColor(msg.severity_score)}`}>
-                        Severity: {msg.severity_score.toFixed(1)}/10
+                        Severity: {Number(msg.severity_score).toFixed(1)}/10
                       </span>
                     )}
                   </div>
@@ -240,7 +240,7 @@ export const WhatsAppMessages = () => {
                   <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded">
                     <MapPin className="w-3 h-3 text-red-500" />
                     <span>
-                      Lat: {msg.latitude?.toFixed(4)}, Lng: {msg.longitude?.toFixed(4)}
+                      Lat: {Number(msg.latitude || 0).toFixed(4)}, Lng: {Number(msg.longitude || 0).toFixed(4)}
                     </span>
                   </div>
                 </div>

@@ -77,7 +77,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       authSubscription = null;
     }
 
-    // Always check real Supabase OAuth session first
+    const hasOAuthHash = typeof window !== 'undefined' && (
+      window.location.hash.includes('access_token') ||
+      window.location.hash.includes('refresh_token') ||
+      window.location.search.includes('code=')
+    );
+
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         localStorage.removeItem('guest_token');
@@ -119,6 +125,11 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
           }
         });
+        return;
+      }
+
+      // If we are currently parsing an OAuth hash in the URL, wait for onAuthStateChange
+      if (hasOAuthHash) {
         return;
       }
 
@@ -189,7 +200,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
       } else {
         const hasGuest = !!localStorage.getItem('guest_token');
-        if (!hasGuest) {
+        if (!hasGuest && !hasOAuthHash) {
           set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
         }
       }

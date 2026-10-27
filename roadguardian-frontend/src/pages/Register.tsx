@@ -23,10 +23,12 @@ export const Register = () => {
   const handleGoogleRegister = async () => {
     setLoading(true);
     try {
+      const rawBase = import.meta.env.VITE_CLIENT_URL || window.location.origin;
+      const clientBase = rawBase.replace(/\/+$/, '');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + (role === 'authority' ? '/authority' : '/dashboard'),
+          redirectTo: `${clientBase}${role === 'authority' ? '/authority' : '/dashboard'}`,
         }
       });
       if (error) toast.error(error.message);

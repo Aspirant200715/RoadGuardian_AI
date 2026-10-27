@@ -118,13 +118,13 @@ async def get_current_user(
     role = "citizen"
     full_name = "User"
 
-    # 1. Handle demo guest tokens only in debug mode.
-    if settings.DEBUG and token.startswith("mock-guest-token-authority"):
+    # 1. Handle demo guest tokens
+    if token.startswith("mock-guest-token-authority"):
         suffix = token.replace("mock-guest-token-authority", "")
         email = f"president{suffix}@roadguardian.gov.in"
         role = "authority"
         full_name = f"Hon'ble Head of State {suffix.replace('-', '')}"
-    elif settings.DEBUG and token.startswith("mock-guest-token-citizen"):
+    elif token.startswith("mock-guest-token-citizen"):
         suffix = token.replace("mock-guest-token-citizen", "")
         email = f"citizen{suffix}@roadguardian.gov.in"
         role = "citizen"

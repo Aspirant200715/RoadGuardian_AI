@@ -28,8 +28,9 @@ export const Login = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const clientBase = import.meta.env.VITE_CLIENT_URL || window.location.origin;
-      const redirectTo = clientBase + (role === 'authority' ? '/authority' : '/dashboard');
+      const rawBase = import.meta.env.VITE_CLIENT_URL || window.location.origin;
+      const clientBase = rawBase.replace(/\/+$/, '');
+      const redirectTo = `${clientBase}${role === 'authority' ? '/authority' : '/dashboard'}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

@@ -119,7 +119,7 @@ export const Heatmap = () => {
             <table style="width: 100%; border-collapse: collapse;">
               <tr style="border-bottom: 1px solid #1e293b;">
                 <td style="padding: 4px 0; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Severity</td>
-                <td style="padding: 4px 0; font-weight: 900; text-align: right; color: #ef4444;">${hazard.severity_score.toFixed(1)}/10</td>
+                <td style="padding: 4px 0; font-weight: 900; text-align: right; color: #ef4444;">${Number(hazard.severity_score || 0).toFixed(1)}/10</td>
               </tr>
               <tr style="border-bottom: 1px solid #1e293b;">
                 <td style="padding: 4px 0; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Status</td>

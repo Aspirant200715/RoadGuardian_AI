@@ -113,7 +113,7 @@ export function TendersDashboard() {
                   <div className="flex flex-col items-end">
                     <div className="flex items-center text-red-600 font-black bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-2 py-1 rounded-sm text-sm">
                       <AlertTriangle size={16} className="mr-1" />
-                      Sev: {hazard.severity_score.toFixed(1)}/10
+                      Sev: {Number(hazard.severity_score || 0).toFixed(1)}/10
                     </div>
                   </div>
                 </div>
@@ -125,7 +125,7 @@ export function TendersDashboard() {
                   <div className="flex items-center justify-between text-xs mt-4">
                     <div className="flex items-center text-muted-foreground font-mono bg-muted px-2 py-1 rounded-sm border border-border">
                       <MapPin size={12} className="mr-1" />
-                      {hazard.latitude.toFixed(4)}, {hazard.longitude.toFixed(4)}
+                      {Number(hazard.latitude || 0).toFixed(4)}, {Number(hazard.longitude || 0).toFixed(4)}
                     </div>
                     {hazard.budget_estimate && (
                       <div className="flex items-center font-bold text-[#138808] border-b-2 border-[#138808]">

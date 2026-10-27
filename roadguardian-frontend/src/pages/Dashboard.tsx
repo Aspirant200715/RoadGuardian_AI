@@ -7,6 +7,12 @@ import { api } from '@/services/api';
 import { AnimatedCounter } from '@/components/gamification/AnimatedCounter';
 import { ShieldPlus, Activity, Trophy, MapPin, CalendarClock, Server, AlertTriangle } from 'lucide-react';
 
+const formatCoord = (val: any) => {
+  if (val === null || val === undefined || val === '') return 'N/A';
+  const num = Number(val);
+  return isNaN(num) ? 'N/A' : num.toFixed(4);
+};
+
 export const Dashboard = () => {
   const { user } = useAuthStore();
   const [reports, setReports] = React.useState<any[]>([]);
@@ -55,7 +61,7 @@ export const Dashboard = () => {
               </div>
               <div className="space-y-1">
                  <h4 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Location</h4>
-                 <p className="font-medium text-sm text-foreground">Lat: {selectedReport?.latitude?.toFixed(4)}, Lng: {selectedReport?.longitude?.toFixed(4)}</p>
+                 <p className="font-medium text-sm text-foreground">Lat: {formatCoord(selectedReport?.latitude)}, Lng: {formatCoord(selectedReport?.longitude)}</p>
               </div>
               {selectedReport?.description && (
                 <div className="space-y-1">
@@ -67,7 +73,7 @@ export const Dashboard = () => {
                 <div className="space-y-1 mt-2">
                    <h4 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-2">Attached Image</h4>
                    <img 
-                      src={selectedReport.image_url.startsWith('http') ? selectedReport.image_url : `http://127.0.0.1:8000${selectedReport.image_url}`} 
+                      src={selectedReport.image_url.startsWith('http') ? selectedReport.image_url : `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}${selectedReport.image_url}`} 
                       alt="Hazard" 
                       className="w-full h-auto max-h-60 rounded-md border border-border object-cover" 
                    />
@@ -152,26 +158,34 @@ export const Dashboard = () => {
                  </tr>
                </thead>
                <tbody className="divide-y divide-border">
-                 {paginatedReports.map(report => (
-                   <tr key={report?.id} className="hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedReport(report)}>
-                     <td className="py-4 px-5 font-mono font-bold text-[#000080] dark:text-primary text-[13px]">HZ-{report?.id}</td>
-                     <td className="py-4 px-5 font-bold text-foreground uppercase">{report?.hazard_type?.replace('_', ' ') || 'UNKNOWN'}</td>
-                     <td className="py-4 px-5">
-                       <div className="flex items-center text-muted-foreground font-medium"><MapPin className="w-4 h-4 mr-1.5" /> {report?.latitude?.toFixed(4) || 'N/A'}, {report?.longitude?.toFixed(4) || 'N/A'}</div>
-                       <div className="flex items-center text-muted-foreground text-xs mt-1.5"><CalendarClock className="w-3.5 h-3.5 mr-1.5" /> {report?.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}</div>
-                     </td>
-                     <td className="py-4 px-5">
-                        <span className={`px-2.5 py-1 rounded-sm font-bold uppercase tracking-wider border text-xs ${
-                          report?.status === 'resolved' ? 'bg-success/10 text-success border-success/30' : 
-                          report?.status === 'pending' ? 'bg-destructive/10 text-destructive border-destructive/30' : 
-                          'bg-muted text-foreground border-border'
-                        }`}>
-                          {report?.status || 'UNKNOWN'}
-                        </span>
-                        <div className="font-mono text-xs mt-2.5 font-bold text-muted-foreground">SEV: {report?.severity_score ?? 0}/10</div>
+                 {paginatedReports.length === 0 ? (
+                   <tr>
+                     <td colSpan={4} className="py-8 text-center text-muted-foreground font-medium">
+                       No reported incidents found. Click "File Hazard Report" to report an issue.
                      </td>
                    </tr>
-                 ))}
+                 ) : (
+                   paginatedReports.map(report => (
+                     <tr key={report?.id} className="hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedReport(report)}>
+                       <td className="py-4 px-5 font-mono font-bold text-[#000080] dark:text-primary text-[13px]">HZ-{report?.id}</td>
+                       <td className="py-4 px-5 font-bold text-foreground uppercase">{report?.hazard_type?.replace('_', ' ') || 'UNKNOWN'}</td>
+                       <td className="py-4 px-5">
+                         <div className="flex items-center text-muted-foreground font-medium"><MapPin className="w-4 h-4 mr-1.5" /> {formatCoord(report?.latitude)}, {formatCoord(report?.longitude)}</div>
+                         <div className="flex items-center text-muted-foreground text-xs mt-1.5"><CalendarClock className="w-3.5 h-3.5 mr-1.5" /> {report?.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}</div>
+                       </td>
+                       <td className="py-4 px-5">
+                          <span className={`px-2.5 py-1 rounded-sm font-bold uppercase tracking-wider border text-xs ${
+                            report?.status === 'resolved' ? 'bg-success/10 text-success border-success/30' : 
+                            report?.status === 'pending' ? 'bg-destructive/10 text-destructive border-destructive/30' : 
+                            'bg-muted text-foreground border-border'
+                          }`}>
+                            {report?.status || 'UNKNOWN'}
+                          </span>
+                          <div className="font-mono text-xs mt-2.5 font-bold text-muted-foreground">SEV: {report?.severity_score ?? 0}/10</div>
+                       </td>
+                     </tr>
+                   ))
+                 )}
                </tbody>
              </table>
              <div className="bg-slate-50 dark:bg-muted/50 p-3 border-t border-border flex justify-between items-center">

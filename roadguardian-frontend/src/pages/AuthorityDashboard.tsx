@@ -577,7 +577,7 @@ export const AuthorityDashboard = () => {
                                   ? 'bg-yellow-500/25 border border-yellow-500/40 text-yellow-500'
                                   : 'bg-green-500/25 border border-green-500/40 text-green-500'
                               }`}>
-                                Severity {hazard.severity_score.toFixed(1)}/10
+                                Severity {Number(hazard.severity_score || 0).toFixed(1)}/10
                               </span>
                               {hazard.image_url ? (
                                 <span className="bg-cyan-500/10 border border-cyan-500/35 text-cyan-400 text-2xs px-2 py-0.5 rounded-full font-bold">
@@ -598,7 +598,7 @@ export const AuthorityDashboard = () => {
                               {hazard.description || "No specific details provided."}
                             </p>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground/80 mt-2 font-medium">
-                              <span>📍 Lat: {hazard.latitude.toFixed(4)}, Lng: {hazard.longitude.toFixed(4)}</span>
+                              <span>📍 Lat: {Number(hazard.latitude || 0).toFixed(4)}, Lng: {Number(hazard.longitude || 0).toFixed(4)}</span>
                               <span>📅 Reported on {new Date(hazard.created_at + (hazard.created_at.endsWith('Z') ? '' : 'Z')).toLocaleDateString()}</span>
                               {hazard.reporter_name && (
                                 <span className="flex items-center gap-1"><Award className="w-3 h-3 text-cyan-400" /> By {hazard.reporter_name}</span>
@@ -698,7 +698,7 @@ export const AuthorityDashboard = () => {
                         </p>
 
                         <div className="bg-background/40 p-3 rounded-lg border border-border/40 text-xs space-y-1 text-muted-foreground">
-                          <p>📍 Coordinates: {hazard.latitude.toFixed(4)}, {hazard.longitude.toFixed(4)}</p>
+                          <p>📍 Coordinates: {Number(hazard.latitude || 0).toFixed(4)}, {Number(hazard.longitude || 0).toFixed(4)}</p>
                           {hazard.assigned_at && (
                             <p>⏱️ Dispatched: {new Date(hazard.assigned_at + (hazard.assigned_at.endsWith('Z') ? '' : 'Z')).toLocaleString()}</p>
                           )}
