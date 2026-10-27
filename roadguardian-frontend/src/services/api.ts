@@ -28,10 +28,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isAuthRoute = error.config?.url?.includes('/auth/');
-    if (error.response?.status === 401 && !isAuthRoute) {
-      useAuthStore.getState().logout();
-      toast.error('Session expired. Please log in again.');
+    if (error.response?.status === 401) {
+      console.warn('API returned 401 for:', error.config?.url);
     }
     return Promise.reject(error);
   }

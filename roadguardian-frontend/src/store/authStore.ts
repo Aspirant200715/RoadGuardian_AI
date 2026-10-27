@@ -166,6 +166,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       const currentState = useAuthStore.getState();
       if (!currentState.isInitialized) {
         console.warn("Auth initialization safety timer triggered.");
+        if (currentState.isAuthenticated && currentState.user) {
+          set({ isInitialized: true });
+          return;
+        }
         const guestToken = localStorage.getItem('guest_token');
         const guestUserStr = localStorage.getItem('guest_user');
         if (guestToken && guestUserStr) {
@@ -184,6 +188,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (session) {
         if (fallbackTimer) clearTimeout(fallbackTimer);
         applySession(session, set);
+        return;
+      }
+
+      // If already authenticated (e.g. from manual extraction or guest login), do not reset state
+      const currentState = useAuthStore.getState();
+      if (currentState.isAuthenticated && currentState.user) {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        set({ isInitialized: true });
         return;
       }
 
@@ -215,6 +227,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
     }).catch((err) => {
       console.warn("supabase.auth.getSession failed:", err);
+      const currentState = useAuthStore.getState();
+      if (currentState.isAuthenticated && currentState.user) {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        set({ isInitialized: true });
+        return;
+      }
       if (fallbackTimer) clearTimeout(fallbackTimer);
       set({ isInitialized: true, isAuthenticated: false, user: null, token: null });
     });
@@ -228,6 +246,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         if (fallbackTimer) clearTimeout(fallbackTimer);
         set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
       } else {
+        // If user is already active in store, do NOT wipe with unauthenticated on null-session events
+        const currentState = useAuthStore.getState();
+        if (currentState.isAuthenticated && currentState.user) {
+          if (fallbackTimer) clearTimeout(fallbackTimer);
+          set({ isInitialized: true });
+          return;
+        }
+
         const guestToken = localStorage.getItem('guest_token');
         const guestUserStr = localStorage.getItem('guest_user');
         if (guestToken && guestUserStr) {
