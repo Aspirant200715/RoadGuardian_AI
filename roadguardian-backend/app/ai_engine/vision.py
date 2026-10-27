@@ -56,6 +56,10 @@ async def detect_hazard_severity(image_path: str) -> float:
         logger.error(f"❌ Image file not found at path: {image_path}")
         return 0.0
 
+    if not os.path.exists(settings.YOLO_MODEL_PATH):
+        logger.info(f"ℹ️ YOLO model file '{settings.YOLO_MODEL_PATH}' not found locally. Skipping download and using standard fallback.")
+        return 0.85
+
     try:
         # Resolve lazy singleton model
         model = get_model()

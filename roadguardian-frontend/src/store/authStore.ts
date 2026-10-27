@@ -37,6 +37,7 @@ interface AuthState {
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   guestLogin: (role: 'citizen' | 'authority') => void;
+  registerUser: (data: { fullName: string; email: string; role: 'citizen' | 'authority' }) => void;
   refreshUser: () => Promise<void>;
 }
 
@@ -139,6 +140,36 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     // Trigger sync for mock guest
     syncUserWithBackend(mockToken, fullName, role);
+  },
+
+  registerUser: ({ fullName, email, role }: { fullName: string; email: string; role: 'citizen' | 'authority' }) => {
+    const randomSuffix = Math.floor(Math.random() * 10000);
+    const cleanEmail = email.trim() || `${role}-${randomSuffix}@roadguardian.gov.in`;
+    const cleanName = fullName.trim() || (role === 'authority' ? `Department Official ${randomSuffix}` : `Registered Citizen ${randomSuffix}`);
+    const token = `auth-reg-token-${role}-${randomSuffix}`;
+    const user = {
+      id: `user-${role}-${randomSuffix}`,
+      email: cleanEmail,
+      fullName: cleanName,
+      role: role,
+      points: role === 'authority' ? 9999 : 50,
+      badges: [],
+    };
+
+    localStorage.removeItem('guest_token');
+    localStorage.removeItem('guest_user');
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('auth_user', JSON.stringify(user));
+
+    set({
+      token,
+      isAuthenticated: true,
+      user,
+      isInitialized: true
+    });
+
+    syncUserWithBackend(token, cleanName, role);
+    toast.success(`Welcome ${cleanName}! Registration successful.`, { icon: '🇮🇳' });
   },
 
   initializeAuth: () => {

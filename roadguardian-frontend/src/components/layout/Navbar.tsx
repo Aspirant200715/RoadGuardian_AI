@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNetwork } from '@/hooks/useNetwork';
-import { DownloadCloud, WifiOff } from 'lucide-react';
+import { DownloadCloud, WifiOff, RefreshCw } from 'lucide-react';
+import { getOfflineCount, syncOfflineReports } from '@/utils/offlineSync';
 
 const ALERTS = [
   { id: 1, type: 'CRITICAL', text: 'SEVERE WATERLOGGING reported at Outer Ring Road. Avoid route.', color: 'text-destructive' },
@@ -25,6 +26,25 @@ export const Navbar = () => {
   const [currentAlert, setCurrentAlert] = useState(0);
   const isOnline = useNetwork();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [pendingOffline, setPendingOffline] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    getOfflineCount().then(setPendingOffline);
+    const handleQueueChanged = (e: any) => {
+      setPendingOffline(e?.detail?.count ?? 0);
+    };
+    window.addEventListener('roadguardian:offline-queue-changed', handleQueueChanged);
+    return () => window.removeEventListener('roadguardian:offline-queue-changed', handleQueueChanged);
+  }, []);
+
+  const handleQuickSync = async () => {
+    setIsSyncing(true);
+    await syncOfflineReports();
+    const count = await getOfflineCount();
+    setPendingOffline(count);
+    setIsSyncing(false);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -150,6 +170,18 @@ export const Navbar = () => {
                 <WifiOff className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Offline Mode</span>
               </div>
+            )}
+
+            {pendingOffline > 0 && (
+              <Button 
+                size="sm" 
+                onClick={handleQuickSync} 
+                disabled={isSyncing}
+                className="bg-amber-500 hover:bg-amber-600 text-white rounded-sm font-bold text-[10px] sm:text-[11px] uppercase shadow-sm h-8 px-2 sm:px-3 flex items-center gap-1.5 border border-amber-400 animate-pulse"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing...' : `Sync Queue (${pendingOffline})`}</span>
+              </Button>
             )}
             
             {deferredPrompt && (

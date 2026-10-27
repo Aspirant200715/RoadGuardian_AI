@@ -27,9 +27,8 @@ class WeatherService:
         Retrieves real-time weather information from OpenWeatherMap (free tier).
         Gracefully resolves default standard fallbacks in case of credentials omission or connection timeouts.
         """
-        api_key = settings.OPENWEATHER_API_KEY
-        if not api_key:
-            logger.info("ℹ️ OPENWEATHER_API_KEY not configured. Defaulting to clear weather condition.")
+        api_key = (settings.OPENWEATHER_API_KEY or "").strip()
+        if not api_key or "your-" in api_key or api_key == "default_key":
             return {"condition": "clear", "severity_modifier": 0.0, "temperature": 25.0, "humidity": 50.0}
         
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lng}&appid={api_key}"

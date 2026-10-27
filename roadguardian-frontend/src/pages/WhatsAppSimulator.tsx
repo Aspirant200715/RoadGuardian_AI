@@ -45,11 +45,14 @@ export const WhatsAppSimulator = () => {
       setMessages(prev => [...prev, { text: botReply, isBot: true }]);
       toast.success('Message sent successfully!');
       setAttachedFile(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Send error:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to communicate with the WhatsApp webhook';
-      toast.error(errorMsg);
-      setMessages(prev => [...prev, { text: `❌ ${errorMsg}`, isBot: true }]);
+      const isTimeout = error?.code === 'ECONNABORTED' || error?.message?.includes('timeout') || error?.code === 'ERR_NETWORK';
+      const userFriendlyMsg = isTimeout 
+        ? "⚠️ Municipal gateway is completing initial wake-up. Please tap send again in 5 seconds."
+        : (error?.response?.data?.detail || error?.message || 'Failed to communicate with the WhatsApp webhook');
+      toast.error(isTimeout ? "Server node waking up, please retry" : userFriendlyMsg);
+      setMessages(prev => [...prev, { text: userFriendlyMsg, isBot: true }]);
     } finally {
       setIsLoading(false);
     }
