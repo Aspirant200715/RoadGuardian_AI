@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # ======================
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173"
@@ -90,14 +90,18 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    @field_validator("CORS_ORIGINS", mode="before")
+    @field_validator("CORS_ORIGINS", mode="after")
     @classmethod
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
             v = v.strip()
+            if not v:
+                return ["*"]
             if v.startswith("[") and v.endswith("]"):
                 try:
-                    return json.loads(v)
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
                 except Exception:
                     pass
             return [origin.strip() for origin in v.split(",") if origin.strip()]
