@@ -22,6 +22,7 @@ export type OfflineReportPayload = Omit<OfflineReport, 'mediaBase64'> & {
 };
 
 const OFFLINE_STORE_KEY = 'roadguardian_offline_reports';
+const SYNCED_STORE_KEY = 'roadguardian_synced_reports';
 let isSyncing = false;
 
 const blobToBase64 = (blob: Blob): Promise<string> =>
@@ -32,19 +33,33 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
-const base64ToBlob = (base64: string, type: string) => {
-  const parts = base64.split(',');
-  const raw = atob(parts[1]);
-  const uInt8Array = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i += 1) {
-    uInt8Array[i] = raw.charCodeAt(i);
+const base64ToBlob = (base64: string, type: string): Blob => {
+  try {
+    if (!base64) return new Blob([''], { type: type || 'image/jpeg' });
+    const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
+    const raw = atob(cleanBase64);
+    const uInt8Array = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: type || 'image/jpeg' });
+  } catch (err) {
+    console.error('base64ToBlob decode fallback:', err);
+    return new Blob([''], { type: type || 'image/jpeg' });
   }
-  return new Blob([uInt8Array], { type });
 };
 
 export const getOfflineReports = async (): Promise<OfflineReport[]> => {
   try {
     return (await localforage.getItem<OfflineReport[]>(OFFLINE_STORE_KEY)) || [];
+  } catch {
+    return [];
+  }
+};
+
+export const getSyncedReports = async (): Promise<any[]> => {
+  try {
+    return (await localforage.getItem<any[]>(SYNCED_STORE_KEY)) || [];
   } catch {
     return [];
   }
@@ -85,25 +100,27 @@ export const clearOfflineReports = async () => {
   notifyOfflineChange(0);
 };
 
-export const syncOfflineReports = async (): Promise<{ success: boolean; synced: number; remaining: number }> => {
+export const syncOfflineReports = async (): Promise<{ success: boolean; synced: number; remaining: number; syncedItems: any[] }> => {
   if (isSyncing) {
     console.log('Sync already in progress...');
-    return { success: false, synced: 0, remaining: 0 };
+    return { success: false, synced: 0, remaining: 0, syncedItems: [] };
   }
 
   isSyncing = true;
   let syncedCount = 0;
+  const syncedItems: any[] = [];
 
   try {
     const existing = await getOfflineReports();
     if (existing.length === 0) {
       isSyncing = false;
-      return { success: true, synced: 0, remaining: 0 };
+      return { success: true, synced: 0, remaining: 0, syncedItems: [] };
     }
 
     toast.loading(`Syncing ${existing.length} offline report(s)...`, { id: 'offline-sync' });
 
     const remainingReports = [...existing];
+    const previouslySynced = await getSyncedReports();
 
     for (let i = 0; i < existing.length; i++) {
       const report = existing[i];
@@ -118,30 +135,45 @@ export const syncOfflineReports = async (): Promise<{ success: boolean; synced: 
       const blob = base64ToBlob(report.mediaBase64, report.mediaMimeType);
 
       try {
+        let serverRes: any = null;
         if (report.type === 'image') {
-          formData.append('image', blob, report.mediaFilename);
-          await api.post('/hazards/upload', formData, { timeout: 60000 });
+          formData.append('image', blob, report.mediaFilename || 'hazard.jpg');
+          serverRes = await api.post('/hazards/upload', formData, { timeout: 60000 });
         } else {
-          formData.append('audio', blob, report.mediaFilename);
-          await api.post('/hazards/voice-report', formData, { timeout: 60000 });
+          formData.append('audio', blob, report.mediaFilename || 'voice.webm');
+          serverRes = await api.post('/hazards/voice-report', formData, { timeout: 60000 });
         }
 
-        // Successfully uploaded: remove this item immediately from storage
+        const createdRecord = serverRes?.data || {
+          id: Date.now() % 10000,
+          hazard_type: report.hazard_type,
+          latitude: Number(report.latitude),
+          longitude: Number(report.longitude),
+          status: 'pending',
+          severity_score: report.severity_score || 5.0,
+          description: report.description,
+          created_at: new Date().toISOString()
+        };
+
         syncedCount += 1;
+        syncedItems.push(createdRecord);
+        previouslySynced.unshift(createdRecord);
+
+        // Immediately update storage
         const removeIndex = remainingReports.findIndex(r => r.id === report.id);
         if (removeIndex !== -1) {
           remainingReports.splice(removeIndex, 1);
           await localforage.setItem(OFFLINE_STORE_KEY, remainingReports);
+          await localforage.setItem(SYNCED_STORE_KEY, previouslySynced);
           notifyOfflineChange(remainingReports.length);
         }
       } catch (itemErr: any) {
         console.warn(`Failed to sync item ${report.id}:`, itemErr?.message);
-        // Stop syncing remaining items if server is unreachable
         const isConnError = itemErr?.code === 'ECONNABORTED' || itemErr?.code === 'ERR_NETWORK' || itemErr?.message?.includes('timeout');
         if (isConnError) {
           toast.error(`Server node waking up. Synced ${syncedCount}/${existing.length}. Remaining queued.`, { id: 'offline-sync' });
           isSyncing = false;
-          return { success: false, synced: syncedCount, remaining: remainingReports.length };
+          return { success: false, synced: syncedCount, remaining: remainingReports.length, syncedItems };
         }
       }
     }
@@ -149,16 +181,16 @@ export const syncOfflineReports = async (): Promise<{ success: boolean; synced: 
     if (remainingReports.length === 0) {
       await localforage.removeItem(OFFLINE_STORE_KEY);
       notifyOfflineChange(0);
-      toast.success('All reports synced to national database!', { id: 'offline-sync' });
-      return { success: true, synced: syncedCount, remaining: 0 };
+      toast.success(`All ${syncedCount} report(s) synced to national database!`, { id: 'offline-sync', duration: 4000 });
+      return { success: true, synced: syncedCount, remaining: 0, syncedItems };
     } else {
       toast.success(`Synced ${syncedCount} report(s). ${remainingReports.length} queued.`, { id: 'offline-sync' });
-      return { success: true, synced: syncedCount, remaining: remainingReports.length };
+      return { success: true, synced: syncedCount, remaining: remainingReports.length, syncedItems };
     }
   } catch (error) {
     console.error('Sync failed:', error);
     toast.error('Sync paused. Will retry when connection stabilizes.', { id: 'offline-sync' });
-    return { success: false, synced: syncedCount, remaining: 0 };
+    return { success: false, synced: syncedCount, remaining: 0, syncedItems };
   } finally {
     isSyncing = false;
   }

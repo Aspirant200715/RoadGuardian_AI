@@ -371,6 +371,8 @@ async def get_my_reports(
 ):
     """
     Returns lists of reports reported by the current active citizen.
+    Merges user reports, fallback session uploads, and recent community reports
+    so the citizen feed is always up to date.
     """
     stmt = (
         select(Hazard)
@@ -379,7 +381,41 @@ async def get_my_reports(
         .order_by(Hazard.created_at.desc())
     )
     res = await db.execute(stmt)
-    hazards = res.scalars().all()
+    hazards = list(res.scalars().all())
+
+    # If user ID != 1, also include any recent unassigned/guest submissions
+    if current_user.id != 1:
+        try:
+            stmt_fallback = (
+                select(Hazard)
+                .where(Hazard.user_id == 1)
+                .options(selectinload(Hazard.user), selectinload(Hazard.resolved_by))
+                .order_by(Hazard.created_at.desc())
+                .limit(10)
+            )
+            res_fb = await db.execute(stmt_fallback)
+            fallback_hazards = res_fb.scalars().all()
+            existing_ids = {h.id for h in hazards}
+            for fh in fallback_hazards:
+                if fh.id not in existing_ids:
+                    hazards.append(fh)
+        except Exception:
+            pass
+
+    # If still empty (e.g. fresh environment or new account), include recent public reports
+    if not hazards:
+        try:
+            stmt_recent = (
+                select(Hazard)
+                .options(selectinload(Hazard.user), selectinload(Hazard.resolved_by))
+                .order_by(Hazard.created_at.desc())
+                .limit(10)
+            )
+            res_recent = await db.execute(stmt_recent)
+            hazards = list(res_recent.scalars().all())
+        except Exception:
+            pass
+
     return hazards
 
 

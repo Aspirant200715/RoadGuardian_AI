@@ -7,7 +7,7 @@ import { api } from '@/services/api';
 import { AnimatedCounter } from '@/components/gamification/AnimatedCounter';
 import { ShieldPlus, Activity, Trophy, MapPin, CalendarClock, Server, AlertTriangle, RefreshCw, CloudUpload, HardDriveDownload } from 'lucide-react';
 import localforage from 'localforage';
-import { syncOfflineReports, getOfflineCount } from '@/utils/offlineSync';
+import { syncOfflineReports, getOfflineCount, getSyncedReports } from '@/utils/offlineSync';
 
 const formatCoord = (val: any) => {
   if (val === null || val === undefined || val === '') return 'N/A';
@@ -29,16 +29,27 @@ export const Dashboard = () => {
   const paginatedReports = (Array.isArray(reports) ? reports : []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const fetchReports = async () => {
+    let combinedReports: any[] = [];
     try {
       const response = await api.get('/hazards/my-reports');
       const serverReports = Array.isArray(response.data) ? response.data : [];
-      setReports(serverReports);
+      combinedReports = [...serverReports];
       await useAuthStore.getState().refreshUser();
     } catch (error) {
       console.warn("Server request pending or timed out, loading local cache:", error);
     } finally {
-      // Always merge any locally queued offline reports so user never loses submitted reports
       try {
+        // Merge recently synced reports stored in local cache
+        const localSynced = await getSyncedReports();
+        const existingIds = new Set(combinedReports.map(r => String(r.id)));
+        for (const sr of localSynced) {
+          if (!existingIds.has(String(sr.id))) {
+            combinedReports.push(sr);
+            existingIds.add(String(sr.id));
+          }
+        }
+
+        // Merge remaining offline pending reports
         const offlineQueue: any[] = (await localforage.getItem('roadguardian_offline_reports')) || [];
         setPendingOfflineCount(offlineQueue.length);
         if (offlineQueue.length > 0) {
@@ -53,13 +64,17 @@ export const Dashboard = () => {
             image_url: item.mediaBase64 || '',
             created_at: new Date(item.timestamp).toISOString()
           }));
-          setReports((prev) => {
-            const existingIds = new Set((prev || []).map((p: any) => String(p.id)));
-            const newItems = mappedOffline.filter(m => !existingIds.has(m.id));
-            return [...newItems, ...(prev || [])];
-          });
+          for (const mo of mappedOffline) {
+            if (!existingIds.has(String(mo.id))) {
+              combinedReports.unshift(mo);
+            }
+          }
         }
-      } catch (_) {}
+
+        setReports(combinedReports);
+      } catch (_) {
+        setReports(combinedReports);
+      }
     }
   };
 
