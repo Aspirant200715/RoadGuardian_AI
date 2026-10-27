@@ -77,41 +77,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       authSubscription = null;
     }
 
-    // Check if there is a guest session stored in localStorage first
-    const guestToken = localStorage.getItem('guest_token');
-    const guestUserStr = localStorage.getItem('guest_user');
-    
-    if (guestToken && guestUserStr) {
-      try {
-        const guestUser = JSON.parse(guestUserStr);
-        set({
-          token: guestToken,
-          isAuthenticated: true,
-          user: guestUser,
-          isInitialized: true
-        });
-        syncUserWithBackend(guestToken, guestUser.fullName, guestUser.role).then((dbUser) => {
-          if (dbUser) {
-            set((state) => ({
-              user: state.user ? {
-                ...state.user,
-                fullName: dbUser.full_name || state.user.fullName,
-                role: dbUser.role as 'citizen' | 'authority',
-                points: dbUser.points ?? state.user.points,
-                badges: dbUser.badges || state.user.badges || []
-              } : null
-            }));
-          }
-        });
-        return;
-      } catch (e) {
-        console.error("Failed to restore guest session:", e);
-      }
-    }
-
-    // Initial session check
+    // Always check real Supabase OAuth session first
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        localStorage.removeItem('guest_token');
+        localStorage.removeItem('guest_user');
+
         const intendedRole = localStorage.getItem('intended_role') || 'citizen';
         const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
         const fullName = session.user.user_metadata?.full_name || 'Citizen';
@@ -148,19 +119,38 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
           }
         });
-      } else {
-        set({ isInitialized: true, isAuthenticated: false, user: null, token: null });
+        return;
       }
+
+      // If no Supabase session, check for mock guest session
+      const guestToken = localStorage.getItem('guest_token');
+      const guestUserStr = localStorage.getItem('guest_user');
+      
+      if (guestToken && guestUserStr) {
+        try {
+          const guestUser = JSON.parse(guestUserStr);
+          set({
+            token: guestToken,
+            isAuthenticated: true,
+            user: guestUser,
+            isInitialized: true
+          });
+          syncUserWithBackend(guestToken, guestUser.fullName, guestUser.role);
+          return;
+        } catch (e) {
+          console.error("Failed to restore guest session:", e);
+        }
+      }
+
+      set({ isInitialized: true, isAuthenticated: false, user: null, token: null });
     });
 
     // Listen for OAuth redirects and auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        const hasGuest = !!localStorage.getItem('guest_token');
-        if (hasGuest) return;
-      }
-
       if (session) {
+        localStorage.removeItem('guest_token');
+        localStorage.removeItem('guest_user');
+
         const intendedRole = localStorage.getItem('intended_role') || 'citizen';
         const localProfileData = JSON.parse(localStorage.getItem(`profile_${session.user.id}`) || '{}');
         const fullName = session.user.user_metadata?.full_name || 'Citizen';
@@ -198,7 +188,10 @@ export const useAuthStore = create<AuthState>((set) => ({
           }
         });
       } else {
-        set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
+        const hasGuest = !!localStorage.getItem('guest_token');
+        if (!hasGuest) {
+          set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
+        }
       }
     });
     authSubscription = subscription;
